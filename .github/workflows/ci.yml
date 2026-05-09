@@ -53,4 +53,4 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npx eslint . --ext .ts,.tsx --max-warnings 0
+        run: ESLINT_USE_FLAT_CONFIG=false npx eslint . --ext .ts,.tsx --max-warnings 0
