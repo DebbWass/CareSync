@@ -28,6 +28,12 @@ android/
 supabase/.branches/
 supabase/.temp/
 
+# Supabase CLI binary (downloaded locally, not part of the repo)
+supabase.exe
+supabase_windows_arm64.tar.gz
+supabase_linux_*.tar.gz
+supabase_darwin_*.tar.gz
+
 # Native signing credentials
 *.jks
 *.p8
