@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
+import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { fetchProfile } from '../services/supabase/auth';
 import { registerPushToken, unregisterPushToken } from '../services/notifications/registration';
+
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 // Bootstraps auth state from Supabase and keeps the authStore in sync.
 // Mount this once in the root layout.
@@ -31,11 +34,11 @@ export function useAuthListener() {
         if (event === 'SIGNED_IN' && newSession?.user) {
           const profile = await fetchProfile(newSession.user.id);
           setProfile(profile);
-          registerPushToken(newSession.user.id);
+          if (!IS_EXPO_GO) registerPushToken(newSession.user.id);
         }
 
         if (event === 'SIGNED_OUT') {
-          if (session?.user?.id) {
+          if (!IS_EXPO_GO && session?.user?.id) {
             unregisterPushToken(session.user.id);
           }
           clearAuth();
