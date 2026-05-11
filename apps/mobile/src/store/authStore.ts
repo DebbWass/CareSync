@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
+import * as SecureStore from 'expo-secure-store';
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import type { User, UserRole } from '../types';
 
@@ -45,7 +45,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'caresync-auth',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: {
+        getItem: (name) => SecureStore.getItemAsync(name).then((v) => v ?? null),
+        setItem: (name, value) => SecureStore.setItemAsync(name, value),
+        removeItem: (name) => SecureStore.deleteItemAsync(name),
+      },
       // Only persist the profile and role — session is managed by Supabase Auth
       partialize: (state) => ({
         profile: state.profile,

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack, router, useSegments } from 'expo-router';
+import { Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -24,27 +24,26 @@ Notifications.setNotificationHandler({
 function AuthGuard() {
   const { session, role } = useAuthStore();
   const segments = useSegments();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
+    if (!navigationState?.key) return; // navigator not mounted yet
+
     const inAuthGroup = segments[0] === '(auth)';
     const inPatientGroup = segments[0] === '(patient)';
     const inCaregiverGroup = segments[0] === '(caregiver)';
 
     if (!session) {
-      // Not logged in — send to login
-      if (!inAuthGroup) {
-        router.replace('/(auth)/login');
-      }
+      if (!inAuthGroup) router.replace('/(auth)/login');
       return;
     }
 
-    // Logged in — redirect to correct role group if not already there
     if (role === 'patient' && !inPatientGroup) {
       router.replace('/(patient)/');
     } else if (role === 'caregiver' && !inCaregiverGroup) {
       router.replace('/(caregiver)/');
     }
-  }, [session, role, segments]);
+  }, [session, role, segments, navigationState?.key]);
 
   return null;
 }
@@ -53,7 +52,7 @@ export default function RootLayout() {
   useAuthListener();
 
   useEffect(() => {
-    setupNotificationChannels();
+    setupNotificationChannels().catch(() => {});
   }, []);
 
   // Handle notification taps (deep-link to reminder screen)
