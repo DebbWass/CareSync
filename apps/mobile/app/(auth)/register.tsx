@@ -1,17 +1,14 @@
 import { useState } from 'react';
 import {
-  View,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  StyleSheet,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { TextInput } from 'react-native-paper';
-import { Text } from '../../src/components/ui/Text';
-import { Button } from '../../src/components/ui/Button';
+import { Button, Text, TextInput } from 'react-native-paper';
+import { Link } from 'expo-router';
 import { signUp } from '../../src/services/supabase/auth';
 import { Colors } from '../../src/constants/colors';
 import type { UserRole } from '../../src/types';
@@ -20,74 +17,52 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState<UserRole>('caregiver');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
-  async function handleRegister() {
-    if (!name.trim() || !email.trim() || !password || !role) {
-      Alert.alert('Missing fields', 'Please fill in all fields and select your role.');
+  const handleRegister = async () => {
+    if (!name.trim() || !email.trim() || !password) {
+      setError('Please fill in all fields.');
       return;
     }
-    if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
-
+    setError('');
     setLoading(true);
     try {
       await signUp(email.trim().toLowerCase(), password, name.trim(), role);
-      // AuthGuard in _layout.tsx handles redirect once session is active
+      // Navigation handled by root layout's auth guard after session is set
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      Alert.alert('Registration failed', message);
+      const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
+        bounces={false}
       >
+        {/* Header */}
         <View style={styles.header}>
-          <Text size={28} weight="bold" color={Colors.light.primary} align="center">
-            Create Account
+          <Text style={styles.appName} accessibilityRole="header">
+            CareSync
           </Text>
-          <Text size={15} color={Colors.light.secondary} align="center">
-            Tell us about yourself to get started
-          </Text>
+          <Text style={styles.subtitle}>Create your account</Text>
         </View>
 
-        {/* Role selector — most important decision */}
-        <View style={styles.section}>
-          <Text size={16} weight="semibold" style={styles.label}>
-            I am a...
-          </Text>
-          <View style={styles.roleRow}>
-            <RoleCard
-              title="Patient"
-              subtitle="I take medications and need reminders"
-              emoji="💊"
-              selected={role === 'patient'}
-              onPress={() => setRole('patient')}
-            />
-            <RoleCard
-              title="Caregiver"
-              subtitle="I manage medications for someone I care for"
-              emoji="🤝"
-              selected={role === 'caregiver'}
-              onPress={() => setRole('caregiver')}
-            />
-          </View>
-        </View>
-
-        {/* Form fields */}
+        {/* Form */}
         <View style={styles.form}>
           <TextInput
             label="Full Name"
@@ -97,8 +72,9 @@ export default function RegisterScreen() {
             autoComplete="name"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Your full name"
+            accessibilityLabel="Full name"
           />
+
           <TextInput
             label="Email"
             value={email}
@@ -110,102 +86,199 @@ export default function RegisterScreen() {
             style={styles.input}
             accessibilityLabel="Email address"
           />
+
           <TextInput
             label="Password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry={!showPassword}
+            secureTextEntry={!passwordVisible}
             autoComplete="new-password"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Password, minimum 8 characters"
+            accessibilityLabel="Password"
             right={
               <TextInput.Icon
-                icon={showPassword ? 'eye-off' : 'eye'}
-                onPress={() => setShowPassword(!showPassword)}
-                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                icon={passwordVisible ? 'eye-off' : 'eye'}
+                onPress={() => setPasswordVisible((v) => !v)}
+                accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
               />
             }
           />
+
+          {/* Role selector */}
+          <Text style={styles.roleLabel}>I am a:</Text>
+          <View style={styles.roleRow} accessibilityRole="radiogroup">
+            <RoleOption
+              label="Caregiver"
+              description="I manage medications for a patient"
+              selected={role === 'caregiver'}
+              onPress={() => setRole('caregiver')}
+            />
+            <RoleOption
+              label="Patient"
+              description="I receive medication reminders"
+              selected={role === 'patient'}
+              onPress={() => setRole('patient')}
+            />
+          </View>
+
+          {error ? (
+            <Text style={styles.errorText} accessibilityRole="alert">
+              {error}
+            </Text>
+          ) : null}
+
+          <Button
+            mode="contained"
+            onPress={handleRegister}
+            loading={loading}
+            disabled={loading}
+            style={styles.button}
+            contentStyle={styles.buttonContent}
+            accessibilityLabel="Create CareSync account"
+            accessibilityHint="Double tap to register with the information above"
+          >
+            Create Account
+          </Button>
+
+          <View style={styles.linkRow}>
+            <Text style={styles.linkText}>Already have an account? </Text>
+            <Link href="/(auth)/login">
+              <Text style={styles.link}>Sign In</Text>
+            </Link>
+          </View>
         </View>
-
-        <Button
-          label="Create Account"
-          onPress={handleRegister}
-          loading={loading}
-          accessibilityLabel="Submit registration form"
-        />
-
-        <Button
-          label="Already have an account? Sign In"
-          onPress={() => router.back()}
-          variant="outline"
-          accessibilityLabel="Go back to sign in screen"
-        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-// Role selection card component
-function RoleCard({
-  title,
-  subtitle,
-  emoji,
-  selected,
-  onPress,
-}: {
-  title: string;
-  subtitle: string;
-  emoji: string;
+// ── Role option card ──────────────────────────────────────────────────────────
+
+interface RoleOptionProps {
+  label: string;
+  description: string;
   selected: boolean;
   onPress: () => void;
-}) {
+}
+
+function RoleOption({ label, description, selected, onPress }: RoleOptionProps) {
   return (
     <TouchableOpacity
-      onPress={onPress}
       style={[styles.roleCard, selected && styles.roleCardSelected]}
+      onPress={onPress}
       accessibilityRole="radio"
-      accessibilityLabel={title}
-      accessibilityHint={subtitle}
-      accessibilityState={{ selected }}
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={label}
+      accessibilityHint={description}
     >
-      <Text size={32} align="center">{emoji}</Text>
-      <Text size={16} weight="bold" color={selected ? Colors.light.primary : Colors.light.onBackground} align="center">
-        {title}
+      <Text style={[styles.roleCardTitle, selected && styles.roleCardTitleSelected]}>
+        {label}
       </Text>
-      <Text size={12} color={Colors.light.secondary} align="center">
-        {subtitle}
+      <Text style={[styles.roleCardDesc, selected && styles.roleCardDescSelected]}>
+        {description}
       </Text>
     </TouchableOpacity>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: Colors.light.background },
-  container: {
+  flex: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  scroll: {
     flexGrow: 1,
+    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 48,
-    gap: 24,
   },
-  header: { gap: 8 },
-  section: { gap: 12 },
-  label: { marginBottom: 4 },
-  roleRow: { flexDirection: 'row', gap: 12 },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  appName: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    letterSpacing: 1,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.light.secondary,
+    marginTop: 6,
+  },
+  form: {
+    gap: 12,
+  },
+  input: {
+    backgroundColor: Colors.light.background,
+  },
+  roleLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.light.onBackground,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  roleRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   roleCard: {
     flex: 1,
     borderWidth: 2,
     borderColor: Colors.light.border,
-    borderRadius: 12,
-    padding: 16,
-    gap: 6,
-    alignItems: 'center',
+    borderRadius: 10,
+    padding: 14,
+    backgroundColor: Colors.light.surface,
   },
   roleCardSelected: {
     borderColor: Colors.light.primary,
-    backgroundColor: '#EBF4FF',
+    backgroundColor: '#EBF3FB',
   },
-  form: { gap: 12 },
-  input: { backgroundColor: Colors.light.background },
+  roleCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.light.secondary,
+    marginBottom: 4,
+  },
+  roleCardTitleSelected: {
+    color: Colors.light.primary,
+  },
+  roleCardDesc: {
+    fontSize: 12,
+    color: Colors.light.secondary,
+    lineHeight: 16,
+  },
+  roleCardDescSelected: {
+    color: Colors.light.primary,
+  },
+  errorText: {
+    color: Colors.light.danger,
+    fontSize: 14,
+  },
+  button: {
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  buttonContent: {
+    height: 52,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  linkText: {
+    color: Colors.light.secondary,
+    fontSize: 14,
+  },
+  link: {
+    color: Colors.light.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });

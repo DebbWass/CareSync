@@ -1,59 +1,58 @@
 import { useState } from 'react';
 import {
-  View,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { TextInput } from 'react-native-paper';
-import { Text } from '../../src/components/ui/Text';
-import { Button } from '../../src/components/ui/Button';
+import { Button, Text, TextInput } from 'react-native-paper';
+import { Link } from 'expo-router';
 import { signIn } from '../../src/services/supabase/auth';
 import { Colors } from '../../src/constants/colors';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
-  async function handleLogin() {
+  const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+      setError('Please fill in all fields.');
       return;
     }
-
+    setError('');
     setLoading(true);
     try {
       await signIn(email.trim().toLowerCase(), password);
-      // AuthGuard in _layout.tsx handles the redirect after session updates
+      // Navigation is handled by the root layout's auth guard
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
-      Alert.alert('Login failed', message);
+      const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
+        bounces={false}
       >
-        {/* Logo / App name */}
+        {/* Header */}
         <View style={styles.header}>
-          <Text size={36} weight="bold" color={Colors.light.primary} align="center">
+          <Text style={styles.appName} accessibilityRole="header">
             CareSync
           </Text>
-          <Text size={16} color={Colors.light.secondary} align="center">
-            Medication management made simple
+          <Text style={styles.tagline}>
+            Medication management for caregivers and patients
           </Text>
         </View>
 
@@ -75,41 +74,45 @@ export default function LoginScreen() {
             label="Password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            autoComplete="password"
+            secureTextEntry={!passwordVisible}
+            autoComplete="current-password"
             mode="outlined"
             style={styles.input}
             accessibilityLabel="Password"
             right={
               <TextInput.Icon
-                icon={showPassword ? 'eye-off' : 'eye'}
-                onPress={() => setShowPassword(!showPassword)}
-                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                icon={passwordVisible ? 'eye-off' : 'eye'}
+                onPress={() => setPasswordVisible((v) => !v)}
+                accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
               />
             }
           />
 
+          {error ? (
+            <Text style={styles.errorText} accessibilityRole="alert">
+              {error}
+            </Text>
+          ) : null}
+
           <Button
-            label="Sign In"
+            mode="contained"
             onPress={handleLogin}
             loading={loading}
+            disabled={loading}
             style={styles.button}
+            contentStyle={styles.buttonContent}
             accessibilityLabel="Sign in to CareSync"
-          />
-        </View>
+            accessibilityHint="Double tap to sign in with your email and password"
+          >
+            Sign In
+          </Button>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text size={14} color={Colors.light.secondary} align="center">
-            Don't have an account?{' '}
-          </Text>
-          <Button
-            label="Create Account"
-            onPress={() => router.push('/(auth)/register')}
-            variant="outline"
-            style={styles.secondaryButton}
-            accessibilityLabel="Go to create account screen"
-          />
+          <View style={styles.linkRow}>
+            <Text style={styles.linkText}>Don&apos;t have an account? </Text>
+            <Link href="/(auth)/register">
+              <Text style={styles.link}>Register</Text>
+            </Link>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -117,18 +120,63 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: Colors.light.background },
-  container: {
+  flex: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  scroll: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 48,
-    gap: 32,
   },
-  header: { gap: 8 },
-  form: { gap: 16 },
-  input: { backgroundColor: Colors.light.background },
-  button: { marginTop: 8 },
-  footer: { gap: 12, alignItems: 'center' },
-  secondaryButton: { maxWidth: 240 },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  appName: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    letterSpacing: 1,
+  },
+  tagline: {
+    fontSize: 15,
+    color: Colors.light.secondary,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 22,
+  },
+  form: {
+    gap: 12,
+  },
+  input: {
+    backgroundColor: Colors.light.background,
+  },
+  errorText: {
+    color: Colors.light.danger,
+    fontSize: 14,
+    marginTop: 2,
+  },
+  button: {
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  buttonContent: {
+    height: 52,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  linkText: {
+    color: Colors.light.secondary,
+    fontSize: 14,
+  },
+  link: {
+    color: Colors.light.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });

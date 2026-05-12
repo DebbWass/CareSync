@@ -1,104 +1,127 @@
-import { useEffect } from 'react';
-import { Stack, router, useSegments, useRootNavigationState } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
+import { ActivityIndicator, View } from 'react-native';
+import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { PaperProvider } from 'react-native-paper';
-import { useAuthStore } from '../src/store/authStore';
-import { useAuthListener } from '../src/hooks/useAuth';
-import { setupNotificationChannels } from '../src/services/notifications/channels';
 import { queryClient } from '../src/lib/queryClient';
-import type { NotificationData } from '../src/types/notifications';
+import { supabase } from '../src/lib/supabase';
+import { useAuthStore } from '../src/store/authStore';
+import { getProfile } from '../src/services/supabase/auth';
+import {
+  configureForegroundNotifications,
+  registerPushToken,
+} from '../src/services/notifications/pushTokenService';
+import { Colors } from '../src/constants/colors';
 
-// Remote push notifications are not supported in Expo Go SDK 53+
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+// Configure foreground notification display behavior at module load time
+configureForegroundNotifications();
 
-// How foreground notifications behave while the app is open (standalone only)
-if (!IS_EXPO_GO) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
-}
+const theme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: Colors.light.primary,
+    onPrimary: Colors.light.onPrimary,
+  },
+};
 
-// Watches auth state and redirects to the correct route group
-function AuthGuard() {
-  const { session, role } = useAuthStore();
+/**
+ * AuthGate sits inside the provider tree and handles:
+ * - Loading the initial Supabase session
+ * - Listening for auth state changes (sign in / sign out / token refresh)
+ * - Redirecting to the correct route group based on session + role
+ */
+function AuthGate() {
+  const [isReady, setIsReady] = useState(false);
+  const router = useRouter();
   const segments = useSegments();
-  const navigationState = useRootNavigationState();
+  const { session, role, setSession, setProfile, clearAuth } = useAuthStore();
+  const readyRef = useRef(false); // guard so onAuthStateChange skips initial load
 
   useEffect(() => {
-    if (!navigationState?.key) return; // navigator not mounted yet
+    // 1. Resolve the initial persisted session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        const profile = await getProfile(session.user.id);
+        if (profile) {
+          setProfile(profile);
+          // Register push token silently — failure is non-fatal
+          registerPushToken(session.user.id).catch((err) =>
+            console.warn('[layout] Push token registration failed:', err)
+          );
+        }
+      }
+      readyRef.current = true;
+      setIsReady(true);
+    });
+
+    // 2. React to subsequent auth events (sign-in, sign-out, token refresh)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!readyRef.current) return; // initial session handled above
+      setSession(session);
+      if (session?.user) {
+        const profile = await getProfile(session.user.id);
+        if (profile) {
+          setProfile(profile);
+          // Re-register on new sign-in (token may have changed)
+          registerPushToken(session.user.id).catch((err) =>
+            console.warn('[layout] Push token registration failed:', err)
+          );
+        }
+      } else {
+        clearAuth();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [setSession, setProfile, clearAuth]);
+
+  // 3. Route guard — runs whenever session/role/segments change
+  useEffect(() => {
+    if (!isReady) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const inPatientGroup = segments[0] === '(patient)';
-    const inCaregiverGroup = segments[0] === '(caregiver)';
 
     if (!session) {
+      // Not logged in → send to login
       if (!inAuthGroup) router.replace('/(auth)/login');
-      return;
+    } else if (role) {
+      // Logged in → send away from auth screens to correct role group
+      if (inAuthGroup) {
+        router.replace(role === 'patient' ? '/(patient)' : '/(caregiver)');
+      }
     }
+  }, [isReady, session, role, segments, router]);
 
-    if (role === 'patient' && !inPatientGroup) {
-      router.replace('/(patient)');
-    } else if (role === 'caregiver' && !inCaregiverGroup) {
-      router.replace('/(caregiver)');
-    }
-  }, [session, role, segments, navigationState?.key]);
+  // Show a branded loading screen while we resolve the session
+  if (!isReady) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.light.primary,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ActivityIndicator size="large" color={Colors.light.onPrimary} />
+      </View>
+    );
+  }
 
-  return null;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {
-  useAuthListener();
-
-  useEffect(() => {
-    if (!IS_EXPO_GO) setupNotificationChannels().catch(() => {});
-  }, []);
-
-  // Handle notification taps (deep-link to reminder screen) — standalone builds only
-  useEffect(() => {
-    if (IS_EXPO_GO) return;
-
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data as unknown as NotificationData;
-
-        if (data?.type === 'reminder' && data.event_id) {
-          router.push(`/reminder/${data.event_id}`);
-        }
-
-        if (data?.type === 'alert') {
-          router.push('/(caregiver)/alerts');
-        }
-      }
-    );
-
-    return () => subscription.remove();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
-      <PaperProvider>
-        <AuthGuard />
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(patient)" />
-          <Stack.Screen name="(caregiver)" />
-          <Stack.Screen
-            name="reminder/[eventId]"
-            options={{
-              presentation: 'fullScreenModal',
-              animation: 'fade',
-            }}
-          />
-        </Stack>
+      <PaperProvider theme={theme}>
+        <StatusBar style="light" />
+        <AuthGate />
       </PaperProvider>
     </QueryClientProvider>
   );

@@ -377,6 +377,27 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+# ── CareSync Edge Functions ───────────────────────────────────────────────────
+
+# Cron: generate medication_events for the next 24 h, mark missed events,
+# and send push notifications for doses due within the next 10 minutes.
+# Runs every 5 minutes.
+[functions.medication-scheduler]
+verify_jwt = false
+
+# HTTP endpoint: send a push notification to all devices for a given user_id.
+# Called by medication-scheduler and caregiver-alert.
+[functions.send-push]
+verify_jwt = false
+
+# Database webhook: fires on UPDATE to medication_events.
+# Creates caregiver alerts and push notifications for missed/snoozed-limit events.
+# Configure the webhook in the Supabase dashboard or via migration:
+#   INSERT INTO supabase_functions.hooks (hook_table_id, hook_name, request_method, ...)
+# Webhook URL: https://<project>.supabase.co/functions/v1/caregiver-alert
+[functions.caregiver-alert]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

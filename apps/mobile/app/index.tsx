@@ -1,16 +1,30 @@
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
-// Initial route — AuthGuard in _layout.tsx redirects immediately once the
-// navigator mounts. This screen is a placeholder so Expo Router has a
-// valid route at "/" on cold start.
 export default function Index() {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" />
+      <Text style={styles.title}>CareSync</Text>
+      <Text style={styles.subtitle}>App is running</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1B6CA8',
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    marginTop: 8,
+    opacity: 0.85,
+  },
 });

@@ -1,37 +1,129 @@
-import { View, StyleSheet } from 'react-native';
-import { Text } from '../../src/components/ui/Text';
+/**
+ * Patient home — shows the current pending medication reminder.
+ * If no reminder is active, shows an "all clear" state.
+ * Polls every 60 seconds for new events (see usePendingEvent).
+ */
+import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native-paper';
+import { Link } from 'expo-router';
+import { ReminderCard } from '../../src/components/patient/ReminderCard';
+import {
+  useConfirmEvent,
+  usePendingEvent,
+  useSnoozeEvent,
+} from '../../src/hooks/useMedicationEvent';
+import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors } from '../../src/constants/colors';
-import { useAuthStore } from '../../src/store/authStore';
+import { FontSizes } from '../../src/constants/typography';
 
-// Patient home screen — Phase 3 will replace this with the fullscreen reminder UI.
-// For now it shows a welcome state so we can verify auth + routing works.
-export default function PatientHomeScreen() {
-  const { profile } = useAuthStore();
+export default function PatientHome() {
+  const highContrast = useSettingsStore((s) => s.highContrastMode);
+  const theme = highContrast ? Colors.highContrast : Colors.light;
 
+  const { data: event, isLoading, error } = usePendingEvent();
+  const confirm = useConfirmEvent();
+  const snooze = useSnoozeEvent();
+
+  // ── Loading ─────────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.primary }]}>
+        <ActivityIndicator size="large" color={theme.onPrimary} />
+      </View>
+    );
+  }
+
+  // ── Error ───────────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.danger }]} accessibilityRole="alert">
+          Could not load reminders. Please check your connection.
+        </Text>
+      </View>
+    );
+  }
+
+  // ── Active reminder ─────────────────────────────────────────────────────────
+  if (event) {
+    return (
+      <ReminderCard
+        event={event}
+        onConfirm={() => confirm.mutate(event.id)}
+        onSnooze={(minutes) => {
+          void minutes; // snooze duration passed to Edge Function via DB event
+          snooze.mutate(event.id);
+        }}
+        isConfirming={confirm.isPending}
+        isSnoozeing={snooze.isPending}
+      />
+    );
+  }
+
+  // ── All clear ───────────────────────────────────────────────────────────────
   return (
-    <View style={styles.container}>
-      <Text size={48} align="center">✅</Text>
-      <Text size={28} weight="bold" color={Colors.light.primary} align="center">
-        All caught up!
+    <View style={[styles.center, { backgroundColor: theme.background }]}>
+      <Text
+        style={[styles.allClearIcon, { color: theme.confirm }]}
+        accessibilityLabel="All clear"
+      >
+        ✓
       </Text>
-      <Text size={20} color={Colors.light.secondary} align="center">
-        {profile?.name ? `Welcome, ${profile.name}` : 'Welcome'}
+      <Text
+        style={[styles.allClearTitle, { color: theme.onBackground }]}
+        accessibilityRole="header"
+      >
+        All good!
       </Text>
-      <Text size={18} color={Colors.light.secondary} align="center" style={styles.hint}>
-        Medication reminders will appear here
+      <Text style={[styles.allClearBody, { color: theme.secondary }]}>
+        No medications due right now.
       </Text>
+      <Link href="/(patient)/history" asChild>
+        <Text
+          style={[styles.historyLink, { color: theme.primary }]}
+          accessibilityRole="link"
+          accessibilityLabel="View medication history"
+          accessibilityHint="Double tap to open your past medication records"
+        >
+          View history →
+        </Text>
+      </Link>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  center: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.light.background,
-    paddingHorizontal: 32,
-    gap: 16,
+    justifyContent: 'center',
+    padding: 32,
+    gap: 12,
   },
-  hint: { marginTop: 8 },
+  allClearIcon: {
+    fontSize: 72,
+    fontWeight: '700',
+    lineHeight: 80,
+  },
+  allClearTitle: {
+    fontSize: FontSizes.patient.heading,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  allClearBody: {
+    fontSize: FontSizes.patient.body,
+    textAlign: 'center',
+  },
+  historyLink: {
+    fontSize: FontSizes.patient.body,
+    fontWeight: '600',
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: FontSizes.patient.body,
+    textAlign: 'center',
+    lineHeight: FontSizes.patient.body * 1.5,
+  },
 });
