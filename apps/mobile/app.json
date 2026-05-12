@@ -29,8 +29,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1B6CA8"
       },
-      "edgeToEdgeEnabled": false,
-      "predictiveBackGestureEnabled": false,
+      "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
@@ -49,10 +48,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
           "color": "#1B6CA8",
-          "defaultChannel": "medications",
-          "sounds": ["./assets/sounds/medication-reminder.wav"]
+          "defaultChannel": "medications"
         }
       ]
     ],
