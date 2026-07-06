@@ -7,6 +7,19 @@
 -- * medication_events DELETE — never (audit log; also blocked by trigger)
 -- * alerts INSERT            — created by the caregiver-alert Edge Function
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Role grants
+-- Postgres privileges are the outer gate; the RLS policies below are the
+-- inner gate deciding WHICH ROWS each authenticated user can touch. Explicit
+-- grants (rather than relying on the platform's default-privilege setup)
+-- keep local Docker, CI, and hosted Supabase behaving identically.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patient_caregiver_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.medications ENABLE ROW LEVEL SECURITY;
