@@ -33,6 +33,24 @@
     "unknown": "Something went wrong. Please try again.",
     "retryHint": "Tries to load the information again"
   },
+  "dashboard": {
+    "greeting": "Hello, {{name}}",
+    "defaultName": "Caregiver",
+    "subtitle": "Caregiver Dashboard",
+    "unreadAlerts_one": "{{count}} unread alert",
+    "unreadAlerts_other": "{{count}} unread alerts",
+    "noUnreadAlerts": "No unread alerts",
+    "alertsHint": "Double tap to view your alert inbox",
+    "yourPatients": "YOUR PATIENTS",
+    "manage": "MANAGE",
+    "noPatients": "No patients linked yet.",
+    "addPatient": "Add a patient",
+    "alertsWithCount": "Alerts ({{count}})",
+    "signOut": "Sign Out",
+    "patientCardLabel": "{{name}} — view medications",
+    "patientCardHint": "Double tap to manage medications for this patient",
+    "patientCardSubtext": "Tap to manage medications →"
+  },
   "alerts": {
     "title": "Alerts",
     "unreadCount": "{{count}} unread",

@@ -5,17 +5,25 @@
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useLinkedPatients } from '../../src/hooks/usePatients';
 import { useUnreadAlertCount } from '../../src/hooks/useAlerts';
 import { useAuthStore } from '../../src/store/authStore';
 import { signOut } from '../../src/services/supabase/auth';
+import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { Colors } from '../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../src/constants/typography';
 
 export default function CaregiverDashboard() {
+  const { t } = useTranslation();
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
-  const { data: patients = [], isLoading: patientsLoading } = useLinkedPatients();
+  const {
+    data: patients = [],
+    isLoading: patientsLoading,
+    error: patientsError,
+    refetch: refetchPatients,
+  } = useLinkedPatients();
   const { data: alertCount = 0 } = useUnreadAlertCount();
 
   const handleSignOut = async () => {
@@ -31,8 +39,12 @@ export default function CaregiverDashboard() {
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>Hello, {profile?.name?.split(' ')[0] ?? 'Caregiver'}</Text>
-          <Text style={styles.headerSubtitle}>Caregiver Dashboard</Text>
+          <Text style={styles.greeting}>
+            {t('dashboard.greeting', {
+              name: profile?.name?.split(' ')[0] ?? t('dashboard.defaultName'),
+            })}
+          </Text>
+          <Text style={styles.headerSubtitle}>{t('dashboard.subtitle')}</Text>
         </View>
 
         {/* Alert badge */}
@@ -42,10 +54,10 @@ export default function CaregiverDashboard() {
           accessibilityRole="button"
           accessibilityLabel={
             alertCount > 0
-              ? `${alertCount} unread alert${alertCount !== 1 ? 's' : ''}`
-              : 'No unread alerts'
+              ? t('dashboard.unreadAlerts', { count: alertCount })
+              : t('dashboard.noUnreadAlerts')
           }
-          accessibilityHint="Double tap to view your alert inbox"
+          accessibilityHint={t('dashboard.alertsHint')}
         >
           <Text style={styles.alertIcon}>🔔</Text>
           {alertCount > 0 && (
@@ -58,14 +70,16 @@ export default function CaregiverDashboard() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* ── Patients ─────────────────────────────────────────────────── */}
-        <SectionHeader title="YOUR PATIENTS" />
+        <SectionHeader title={t('dashboard.yourPatients')} />
 
         {patientsLoading ? (
           <ActivityIndicator color={Colors.light.primary} style={styles.loader} />
+        ) : patientsError ? (
+          <ErrorBanner error={patientsError} onRetry={refetchPatients} />
         ) : patients.length === 0 ? (
           <EmptyCard
-            message="No patients linked yet."
-            action="Add a patient"
+            message={t('dashboard.noPatients')}
+            action={t('dashboard.addPatient')}
             onPress={() => router.push('/(caregiver)/patients')}
           />
         ) : (
@@ -85,12 +99,12 @@ export default function CaregiverDashboard() {
         )}
 
         {/* ── Quick actions ─────────────────────────────────────────────── */}
-        <SectionHeader title="MANAGE" />
+        <SectionHeader title={t('dashboard.manage')} />
 
         <View style={styles.actionGrid}>
           <ActionCard
             icon="💊"
-            label="Medications"
+            label={t('tabs.medications')}
             onPress={() =>
               patients.length === 1
                 ? router.push({
@@ -105,17 +119,19 @@ export default function CaregiverDashboard() {
           />
           <ActionCard
             icon="📅"
-            label="Schedules"
+            label={t('tabs.schedules')}
             onPress={() => router.push('/(caregiver)/schedules')}
           />
           <ActionCard
             icon="👥"
-            label="Patients"
+            label={t('tabs.patients')}
             onPress={() => router.push('/(caregiver)/patients')}
           />
           <ActionCard
             icon="🔔"
-            label={alertCount > 0 ? `Alerts (${alertCount})` : 'Alerts'}
+            label={
+              alertCount > 0 ? t('dashboard.alertsWithCount', { count: alertCount }) : t('tabs.alerts')
+            }
             onPress={() => router.push('/(caregiver)/alerts')}
             highlight={alertCount > 0}
           />
@@ -126,9 +142,9 @@ export default function CaregiverDashboard() {
           style={styles.signOutButton}
           onPress={handleSignOut}
           accessibilityRole="button"
-          accessibilityLabel="Sign out"
+          accessibilityLabel={t('common.signOut')}
         >
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={styles.signOutText}>{t('dashboard.signOut')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -148,20 +164,21 @@ interface PatientCardProps {
 }
 
 function PatientCard({ name, onPressMedications }: PatientCardProps) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity
       style={styles.patientCard}
       onPress={onPressMedications}
       accessibilityRole="button"
-      accessibilityLabel={`${name} — view medications`}
-      accessibilityHint="Double tap to manage medications for this patient"
+      accessibilityLabel={t('dashboard.patientCardLabel', { name })}
+      accessibilityHint={t('dashboard.patientCardHint')}
     >
       <View style={styles.patientAvatar}>
         <Text style={styles.patientAvatarText}>{name.charAt(0).toUpperCase()}</Text>
       </View>
       <View style={styles.patientInfo}>
         <Text style={styles.patientName}>{name}</Text>
-        <Text style={styles.patientSubtext}>Tap to manage medications →</Text>
+        <Text style={styles.patientSubtext}>{t('dashboard.patientCardSubtext')}</Text>
       </View>
     </TouchableOpacity>
   );
