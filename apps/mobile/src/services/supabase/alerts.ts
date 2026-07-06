@@ -17,7 +17,7 @@ export async function getUnreadAlertCount(caregiverId: string): Promise<number> 
 export async function getAlerts(caregiverId: string): Promise<Alert[]> {
   const { data, error } = await supabase
     .from('alerts')
-    .select('*, patient:patient_id(name), medication_events(scheduled_time, status)')
+    .select('*, patient:users!patient_id(name), medication_events(scheduled_time, status)')
     .eq('caregiver_id', caregiverId)
     .order('created_at', { ascending: false });
 
