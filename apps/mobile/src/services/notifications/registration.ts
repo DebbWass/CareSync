@@ -1,12 +1,36 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from '../../lib/supabase';
+
+const IS_WEB = Platform.OS === 'web';
+
+async function getPersistablePushToken(): Promise<string | null> {
+  if (IS_WEB) {
+    return null;
+  }
+
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId;
+  const hasRealProjectId = Boolean(projectId && projectId !== 'YOUR_EAS_PROJECT_ID');
+
+  // Prefer Expo push tokens for cross-platform delivery through send-push.
+  if (hasRealProjectId) {
+    const expoToken = await Notifications.getExpoPushTokenAsync({ projectId });
+    return expoToken.data;
+  }
+
+  // Fallback for local/dev environments without EAS project metadata.
+  const deviceToken = await Notifications.getDevicePushTokenAsync();
+  return deviceToken.data;
+}
 
 // Requests permission, gets the device push token, and saves it to push_tokens.
 // Safe to call on every app launch — UPSERT prevents duplicates.
 export async function registerPushToken(userId: string): Promise<void> {
-  if (!Device.isDevice) {
+  if (IS_WEB || !Device.isDevice) {
     // Push notifications don't work in simulators
     return;
   }
@@ -24,29 +48,32 @@ export async function registerPushToken(userId: string): Promise<void> {
     return;
   }
 
-  // Get the raw FCM (Android) or APNs (iOS) token for direct delivery
-  const tokenData = await Notifications.getDevicePushTokenAsync();
+  const token = await getPersistablePushToken();
+  if (!token) return;
+
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
   await supabase
     .from('push_tokens')
     .upsert(
-      { user_id: userId, token: tokenData.data, platform },
+      { user_id: userId, token, platform },
       { onConflict: 'user_id,token' }
     );
 }
 
 // Removes the current device token from the DB on logout.
 export async function unregisterPushToken(userId: string): Promise<void> {
-  if (!Device.isDevice) return;
+  if (IS_WEB || !Device.isDevice) return;
 
   try {
-    const tokenData = await Notifications.getDevicePushTokenAsync();
+    const token = await getPersistablePushToken();
+    if (!token) return;
+
     await supabase
       .from('push_tokens')
       .delete()
       .eq('user_id', userId)
-      .eq('token', tokenData.data);
+      .eq('token', token);
   } catch {
     // Token may already be gone — not a critical error
   }
