@@ -11,18 +11,15 @@ import {
 } from '../services/supabase/schedules';
 
 export const scheduleKeys = {
-  byMedication: (medicationId: string) =>
-    ['schedules', 'medication', medicationId] as const,
-  byPatient: (patientId: string) =>
-    ['schedules', 'patient', patientId] as const,
+  byMedication: (medicationId: string) => ['schedules', 'medication', medicationId] as const,
+  byPatient: (patientId: string) => ['schedules', 'patient', patientId] as const,
   detail: (id: string) => ['schedules', 'detail', id] as const,
 };
 
 export function useSchedulesForMedication(medicationId: string | undefined) {
   return useQuery({
     queryKey: scheduleKeys.byMedication(medicationId ?? ''),
-    queryFn: () =>
-      medicationId ? getSchedulesForMedication(medicationId) : [],
+    queryFn: () => (medicationId ? getSchedulesForMedication(medicationId) : []),
     enabled: !!medicationId,
   });
 }

@@ -8,9 +8,7 @@ import { HISTORY_DEFAULT_DAYS, MISSED_GRACE_PERIOD_MINUTES } from '../../constan
  * Only returns events within the grace period window (already due or due soon).
  */
 export async function getPendingEvent(patientId: string): Promise<MedicationEvent | null> {
-  const windowEnd = new Date(
-    Date.now() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000
-  ).toISOString();
+  const windowEnd = new Date(Date.now() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000).toISOString();
 
   const { data, error } = await supabase
     .from('medication_events')

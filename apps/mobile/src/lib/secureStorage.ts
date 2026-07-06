@@ -64,9 +64,7 @@ export const LargeSecureStore = {
     const count = parseInt(countStr, 10);
     await SecureStore.deleteItemAsync(`${key}_count`);
     await Promise.all(
-      Array.from({ length: count }, (_, i) =>
-        SecureStore.deleteItemAsync(`${key}_chunk_${i}`)
-      )
+      Array.from({ length: count }, (_, i) => SecureStore.deleteItemAsync(`${key}_chunk_${i}`))
     );
   },
 };

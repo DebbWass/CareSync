@@ -5,44 +5,44 @@ name: Patient Login and Home Screen
     clearState: true
 
 # Login as patient
-- assertVisible: "Sign In"
+- assertVisible: 'Sign In'
 - tapOn:
-    label: "Email address"
+    label: 'Email address'
 - inputText: ${PATIENT_EMAIL}
 - tapOn:
-    label: "Password"
+    label: 'Password'
 - inputText: ${PATIENT_PASSWORD}
 - tapOn:
-    label: "Sign in to CareSync"
+    label: 'Sign in to CareSync'
 
 # Patient home: either an active reminder or the all-clear state
 - assertTrue:
-    label: "Patient home screen visible"
+    label: 'Patient home screen visible'
     visible:
-      - "TIME TO TAKE YOUR MEDICATION"
-      - "No medications due right now."
+      - 'TIME TO TAKE YOUR MEDICATION'
+      - 'No medications due right now.'
 
 # If no active reminder, verify history link works
 - runFlow:
     when:
-      visible: "No medications due right now."
+      visible: 'No medications due right now.'
     commands:
       - tapOn:
-          label: "View medication history"
-      - assertVisible: "Medication History"
+          label: 'View medication history'
+      - assertVisible: 'Medication History'
       - tapOn:
-          label: "Go back"
+          label: 'Go back'
 
 # If active reminder visible, confirm medication taken
 - runFlow:
     when:
-      visible: "TIME TO TAKE YOUR MEDICATION"
+      visible: 'TIME TO TAKE YOUR MEDICATION'
     commands:
-      - assertVisible: "MEDICATION TAKEN"
+      - assertVisible: 'MEDICATION TAKEN'
       - tapOn:
-          label: "Medication taken"
+          label: 'Medication taken'
       - assertTrue:
-          label: "Post-confirm state"
+          label: 'Post-confirm state'
           visible:
-            - "TIME TO TAKE YOUR MEDICATION"
-            - "No medications due right now."
+            - 'TIME TO TAKE YOUR MEDICATION'
+            - 'No medications due right now.'

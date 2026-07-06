@@ -90,15 +90,25 @@ export default function NewScheduleScreen() {
   };
 
   const handleSave = () => {
-    if (!selectedMedId) { setError('Please select a medication.'); return; }
+    if (!selectedMedId) {
+      setError('Please select a medication.');
+      return;
+    }
     if (times.some((t) => !isValidTime(t))) {
       setError('All times must be in HH:MM format (24-hour), e.g. 08:00 or 20:30.');
       return;
     }
-    if (!isValidDate(startDate)) { setError('Start date must be YYYY-MM-DD.'); return; }
-    if (endDate && !isValidDate(endDate)) { setError('End date must be YYYY-MM-DD.'); return; }
+    if (!isValidDate(startDate)) {
+      setError('Start date must be YYYY-MM-DD.');
+      return;
+    }
+    if (endDate && !isValidDate(endDate)) {
+      setError('End date must be YYYY-MM-DD.');
+      return;
+    }
     if ((frequency === 'weekly' || frequency === 'custom') && selectedDays.length === 0) {
-      setError('Please select at least one day of the week.'); return;
+      setError('Please select at least one day of the week.');
+      return;
     }
 
     setError('');
@@ -107,10 +117,7 @@ export default function NewScheduleScreen() {
         medication_id: selectedMedId,
         frequency_type: frequency,
         times_of_day: times,
-        days_of_week:
-          frequency === 'weekly' || frequency === 'custom'
-            ? selectedDays
-            : undefined,
+        days_of_week: frequency === 'weekly' || frequency === 'custom' ? selectedDays : undefined,
         start_date: startDate,
         end_date: endDate || undefined,
       },
@@ -141,9 +148,7 @@ export default function NewScheduleScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Add Schedule</Text>
-          {patientName ? (
-            <Text style={styles.subtitle}>for {patientName}</Text>
-          ) : null}
+          {patientName ? <Text style={styles.subtitle}>for {patientName}</Text> : null}
         </View>
         <View style={styles.headerBtn} />
       </View>
@@ -152,10 +157,7 @@ export default function NewScheduleScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.form}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           {/* Medication selector */}
           <Text style={styles.fieldLabel}>Medication *</Text>
           {medications.length === 0 ? (
@@ -167,20 +169,14 @@ export default function NewScheduleScreen() {
               {medications.map((med) => (
                 <TouchableOpacity
                   key={med.id}
-                  style={[
-                    styles.chip,
-                    selectedMedId === med.id && styles.chipSelected,
-                  ]}
+                  style={[styles.chip, selectedMedId === med.id && styles.chipSelected]}
                   onPress={() => setSelectedMedId(med.id)}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: selectedMedId === med.id }}
                   accessibilityLabel={`${med.name} ${med.dosage}`}
                 >
                   <Text
-                    style={[
-                      styles.chipText,
-                      selectedMedId === med.id && styles.chipTextSelected,
-                    ]}
+                    style={[styles.chipText, selectedMedId === med.id && styles.chipTextSelected]}
                   >
                     {med.name}
                   </Text>
@@ -209,12 +205,7 @@ export default function NewScheduleScreen() {
                 accessibilityState={{ checked: frequency === f }}
                 accessibilityLabel={FREQUENCY_LABELS[f]}
               >
-                <Text
-                  style={[
-                    styles.chipText,
-                    frequency === f && styles.chipTextSelected,
-                  ]}
-                >
+                <Text style={[styles.chipText, frequency === f && styles.chipTextSelected]}>
                   {FREQUENCY_LABELS[f]}
                 </Text>
               </TouchableOpacity>
@@ -266,10 +257,7 @@ export default function NewScheduleScreen() {
                 {DAY_LABELS.map((label, i) => (
                   <TouchableOpacity
                     key={i}
-                    style={[
-                      styles.dayChip,
-                      selectedDays.includes(i) && styles.dayChipActive,
-                    ]}
+                    style={[styles.dayChip, selectedDays.includes(i) && styles.dayChipActive]}
                     onPress={() => toggleDay(i)}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: selectedDays.includes(i) }}

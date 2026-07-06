@@ -46,9 +46,13 @@ export default function MedicationListScreen() {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title} numberOfLines={1}>Medications</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            Medications
+          </Text>
           {patientName ? (
-            <Text style={styles.subtitle} numberOfLines={1}>{patientName}</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {patientName}
+            </Text>
           ) : null}
         </View>
         <TouchableOpacity
@@ -77,19 +81,15 @@ export default function MedicationListScreen() {
         <FlatList
           data={medications}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <MedicationRow med={item} onPress={() => handleEdit(item)} />
-          )}
-          contentContainerStyle={[
-            styles.list,
-            medications.length === 0 && styles.listEmpty,
-          ]}
+          renderItem={({ item }) => <MedicationRow med={item} onPress={() => handleEdit(item)} />}
+          contentContainerStyle={[styles.list, medications.length === 0 && styles.listEmpty]}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={styles.emptyTitle}>No medications yet</Text>
               <Text style={styles.emptyBody}>
-                Tap &quot;+ Add&quot; to create the first medication for {patientName ?? 'this patient'}.
+                Tap &quot;+ Add&quot; to create the first medication for{' '}
+                {patientName ?? 'this patient'}.
               </Text>
             </View>
           }
@@ -102,13 +102,7 @@ export default function MedicationListScreen() {
 
 // ── MedicationRow ─────────────────────────────────────────────────────────────
 
-function MedicationRow({
-  med,
-  onPress,
-}: {
-  med: Medication;
-  onPress: () => void;
-}) {
+function MedicationRow({ med, onPress }: { med: Medication; onPress: () => void }) {
   return (
     <TouchableOpacity
       style={styles.row}

@@ -43,8 +43,7 @@ export function useCreateMedication() {
   const qc = useQueryClient();
   const caregiverId = useAuthStore((s) => s.profile?.id ?? '');
   return useMutation({
-    mutationFn: (input: CreateMedicationInput) =>
-      createMedication(input, caregiverId),
+    mutationFn: (input: CreateMedicationInput) => createMedication(input, caregiverId),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: medicationKeys.list(variables.patient_id) });
     },

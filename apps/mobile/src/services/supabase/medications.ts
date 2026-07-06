@@ -36,11 +36,7 @@ export async function getMedications(patientId: string): Promise<Medication[]> {
 
 /** Get a single medication by ID (including inactive ones, for edit view). */
 export async function getMedication(id: string): Promise<Medication | null> {
-  const { data, error } = await supabase
-    .from('medications')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { data, error } = await supabase.from('medications').select('*').eq('id', id).single();
 
   if (error) {
     console.warn('[Medications] getMedication error:', error.message);
@@ -79,14 +75,8 @@ export async function createMedication(
 }
 
 /** Update a medication's name, dosage, or instructions. */
-export async function updateMedication(
-  id: string,
-  input: UpdateMedicationInput
-): Promise<void> {
-  const { error } = await supabase
-    .from('medications')
-    .update(input)
-    .eq('id', id);
+export async function updateMedication(id: string, input: UpdateMedicationInput): Promise<void> {
+  const { error } = await supabase.from('medications').update(input).eq('id', id);
 
   if (error) throw error;
 }
@@ -96,10 +86,7 @@ export async function updateMedication(
  * Historical medication_events referencing this medication are preserved.
  */
 export async function deactivateMedication(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('medications')
-    .update({ is_active: false })
-    .eq('id', id);
+  const { error } = await supabase.from('medications').update({ is_active: false }).eq('id', id);
 
   if (error) throw error;
 }

@@ -17,9 +17,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.caresync.app",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
+        "UIBackgroundModes": ["remote-notification"],
         "NSUserNotificationsUsageDescription": "CareSync uses notifications to remind you when it's time to take your medications.",
         "NSCameraUsageDescription": "CareSync may use the camera for profile photos.",
         "UIStatusBarStyle": "UIStatusBarStyleLightContent"
@@ -55,7 +53,8 @@
           "color": "#1B6CA8",
           "defaultChannel": "medications"
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

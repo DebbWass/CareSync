@@ -1,5 +1,5 @@
-import { create } from 'zustand/index.js';
-import { persist, createJSONStorage } from 'zustand/middleware.js';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import type { User, UserRole } from '../types';
 import { LargeSecureStore } from '../lib/secureStorage';

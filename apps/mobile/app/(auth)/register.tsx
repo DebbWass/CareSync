@@ -172,9 +172,7 @@ function RoleOption({ label, description, selected, onPress }: RoleOptionProps) 
       accessibilityLabel={label}
       accessibilityHint={description}
     >
-      <Text style={[styles.roleCardTitle, selected && styles.roleCardTitleSelected]}>
-        {label}
-      </Text>
+      <Text style={[styles.roleCardTitle, selected && styles.roleCardTitleSelected]}>{label}</Text>
       <Text style={[styles.roleCardDesc, selected && styles.roleCardDescSelected]}>
         {description}
       </Text>

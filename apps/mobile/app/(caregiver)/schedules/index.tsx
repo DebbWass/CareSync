@@ -26,15 +26,12 @@ export default function ScheduleListScreen() {
   const { data: schedules = [], isLoading, error } = useSchedulesForPatient(patientId);
 
   // Group by medication name
-  const grouped = schedules.reduce<Record<string, ScheduleWithMedication[]>>(
-    (acc, s) => {
-      const key = s.medications?.name ?? 'Unknown';
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(s);
-      return acc;
-    },
-    {}
-  );
+  const grouped = schedules.reduce<Record<string, ScheduleWithMedication[]>>((acc, s) => {
+    const key = s.medications?.name ?? 'Unknown';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
 
   const sections = Object.entries(grouped).map(([title, data]) => ({ title, data }));
 
@@ -72,7 +69,9 @@ export default function ScheduleListScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Schedules</Text>
           {patientName ? (
-            <Text style={styles.subtitle} numberOfLines={1}>{patientName}</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {patientName}
+            </Text>
           ) : null}
         </View>
         <TouchableOpacity
@@ -100,17 +99,12 @@ export default function ScheduleListScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[
-            styles.list,
-            sections.length === 0 && styles.listEmpty,
-          ]}
+          contentContainerStyle={[styles.list, sections.length === 0 && styles.listEmpty]}
           renderSectionHeader={({ section: { title, data } }) => (
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{title}</Text>
               <TouchableOpacity
-                onPress={() =>
-                  handleAdd(data[0]?.medication_id, title)
-                }
+                onPress={() => handleAdd(data[0]?.medication_id, title)}
                 accessibilityRole="button"
                 accessibilityLabel={`Add schedule for ${title}`}
               >
@@ -127,7 +121,8 @@ export default function ScheduleListScreen() {
             <View style={styles.center}>
               <Text style={styles.emptyTitle}>No schedules yet</Text>
               <Text style={styles.emptyBody}>
-                Tap &quot;+ Add&quot; to create the first schedule for {patientName ?? 'this patient'}.
+                Tap &quot;+ Add&quot; to create the first schedule for{' '}
+                {patientName ?? 'this patient'}.
               </Text>
             </View>
           }
@@ -167,10 +162,7 @@ function ScheduleRow({
             {DAY_LABELS.map((label, i) => (
               <View
                 key={i}
-                style={[
-                  styles.dayChip,
-                  schedule.days_of_week!.includes(i) && styles.dayChipActive,
-                ]}
+                style={[styles.dayChip, schedule.days_of_week!.includes(i) && styles.dayChipActive]}
               >
                 <Text
                   style={[

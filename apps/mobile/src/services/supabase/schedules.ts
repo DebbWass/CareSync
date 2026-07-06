@@ -10,9 +10,9 @@ export interface ScheduleWithMedication extends MedicationSchedule {
 export interface CreateScheduleInput {
   medication_id: string;
   frequency_type: FrequencyType;
-  times_of_day: string[];       // ["08:00", "20:00"]
-  days_of_week?: number[];      // [0..6]; undefined = every day
-  start_date: string;           // "YYYY-MM-DD"
+  times_of_day: string[]; // ["08:00", "20:00"]
+  days_of_week?: number[]; // [0..6]; undefined = every day
+  start_date: string; // "YYYY-MM-DD"
   end_date?: string;
 }
 
@@ -45,9 +45,7 @@ export async function getSchedulesForMedication(
 }
 
 /** All active schedules for a patient, joined with medication name/dosage. */
-export async function getSchedulesForPatient(
-  patientId: string
-): Promise<ScheduleWithMedication[]> {
+export async function getSchedulesForPatient(patientId: string): Promise<ScheduleWithMedication[]> {
   const { data, error } = await supabase
     .from('medication_schedules')
     .select('*, medications!inner(name, dosage, patient_id)')
@@ -79,9 +77,7 @@ export async function getSchedule(id: string): Promise<MedicationSchedule | null
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
-export async function createSchedule(
-  input: CreateScheduleInput
-): Promise<MedicationSchedule> {
+export async function createSchedule(input: CreateScheduleInput): Promise<MedicationSchedule> {
   const { data, error } = await supabase
     .from('medication_schedules')
     .insert(input)
@@ -92,14 +88,8 @@ export async function createSchedule(
   return data as MedicationSchedule;
 }
 
-export async function updateSchedule(
-  id: string,
-  input: UpdateScheduleInput
-): Promise<void> {
-  const { error } = await supabase
-    .from('medication_schedules')
-    .update(input)
-    .eq('id', id);
+export async function updateSchedule(id: string, input: UpdateScheduleInput): Promise<void> {
+  const { error } = await supabase.from('medication_schedules').update(input).eq('id', id);
 
   if (error) throw error;
 }
