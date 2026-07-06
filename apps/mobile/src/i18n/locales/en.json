@@ -1,0 +1,23 @@
+{
+  "common": {
+    "appName": "CareSync",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "signOut": "Sign out",
+    "signOutFailed": "Sign out failed",
+    "error": "Something went wrong"
+  },
+  "tabs": {
+    "today": "Today",
+    "history": "History",
+    "dashboard": "Dashboard",
+    "medications": "Medications",
+    "schedules": "Schedules",
+    "patients": "Patients",
+    "alerts": "Alerts"
+  }
+}

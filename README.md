@@ -91,7 +91,40 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 | `develop` | Integration branch |
 | `feature/xxx` | Individual features |
 
-All PRs require TypeScript type-check + ESLint to pass before merge.
+All PRs must pass the full CI quality gate before merge: TypeScript
+type-check, ESLint (zero warnings), Prettier, Jest unit tests, Deno Edge
+Function tests, pgTAP database tests, dependency audit, and an Expo bundle
+smoke test.
+
+### Testing & quality commands
+
+```powershell
+# Mobile app (run in apps/mobile — or from the repo root via npm run <script>)
+npm test                 # Jest unit/component tests
+npm run test:coverage    # Jest with coverage report
+npm run lint             # ESLint (zero-warning policy)
+npm run typecheck        # TypeScript
+npm run format           # Prettier write
+npm run format:check     # Prettier verify (what CI runs)
+
+# Database (repo root; requires Docker + `supabase start`)
+npm run db:reset         # Re-run all migrations + seed
+npm run db:test          # pgTAP suite in supabase/tests/
+npm run db:types         # Regenerate apps/mobile/src/types/database.ts
+
+# Edge Functions (in supabase/functions; requires Deno)
+deno test tests/
+```
+
+Local seed accounts (after `npm run db:reset`): `patient@caresync.test` /
+`caregiver@caresync.test`, password `Password123!`.
+
+### Internationalization
+
+UI strings live in `apps/mobile/src/i18n/locales/` (`en.json`; Hebrew arrives
+with the RTL milestone). Screens use `useTranslation()` — never hardcode
+user-facing strings. Language resolution: user setting → device locale →
+English fallback.
 
 ## Documentation
 

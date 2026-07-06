@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { signIn } from '../../src/services/supabase/auth';
@@ -51,9 +45,7 @@ export default function LoginScreen() {
           <Text style={styles.appName} accessibilityRole="header">
             CareSync
           </Text>
-          <Text style={styles.tagline}>
-            Medication management for caregivers and patients
-          </Text>
+          <Text style={styles.tagline}>Medication management for caregivers and patients</Text>
         </View>
 
         {/* Form */}

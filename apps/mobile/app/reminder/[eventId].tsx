@@ -78,9 +78,7 @@ export default function ReminderDeepLink() {
       <View style={[styles.center, { backgroundColor: Colors.light.confirm }]}>
         <Text style={styles.takenIcon}>✓</Text>
         <Text style={styles.takenTitle}>Already confirmed!</Text>
-        <Text style={styles.takenBody}>
-          This medication was recorded as taken.
-        </Text>
+        <Text style={styles.takenBody}>This medication was recorded as taken.</Text>
         <Text
           style={styles.backLinkLight}
           onPress={() => router.replace('/(patient)')}

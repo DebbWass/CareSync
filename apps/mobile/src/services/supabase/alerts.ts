@@ -30,10 +30,7 @@ export async function getAlerts(caregiverId: string): Promise<Alert[]> {
 
 /** Mark a single alert as read. */
 export async function markAlertRead(alertId: string): Promise<void> {
-  const { error } = await supabase
-    .from('alerts')
-    .update({ is_read: true })
-    .eq('id', alertId);
+  const { error } = await supabase.from('alerts').update({ is_read: true }).eq('id', alertId);
 
   if (error) throw error;
 }

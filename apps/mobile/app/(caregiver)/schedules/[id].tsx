@@ -14,7 +14,11 @@ import {
 } from 'react-native';
 import { ActivityIndicator, Button, Text, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useDeactivateSchedule, useSchedule, useUpdateSchedule } from '../../../src/hooks/useSchedules';
+import {
+  useDeactivateSchedule,
+  useSchedule,
+  useUpdateSchedule,
+} from '../../../src/hooks/useSchedules';
 import {
   DAY_LABELS,
   FREQUENCY_LABELS,
@@ -28,13 +32,16 @@ import type { FrequencyType } from '../../../src/types';
 
 export default function EditScheduleScreen() {
   const router = useRouter();
-  const { id, patientId = '', medicationId = '' } =
-    useLocalSearchParams<{
-      id: string;
-      patientId: string;
-      patientName: string;
-      medicationId: string;
-    }>();
+  const {
+    id,
+    patientId = '',
+    medicationId = '',
+  } = useLocalSearchParams<{
+    id: string;
+    patientId: string;
+    patientName: string;
+    medicationId: string;
+  }>();
 
   const { data: schedule, isLoading } = useSchedule(id);
   const updateMutation = useUpdateSchedule(medicationId, patientId);
@@ -61,9 +68,7 @@ export default function EditScheduleScreen() {
   const handleTimeChange = (index: number, value: string) => {
     setEdits((e) => ({
       ...e,
-      times_of_day: (e.times_of_day ?? times).map((t, i) =>
-        i === index ? value : t
-      ),
+      times_of_day: (e.times_of_day ?? times).map((t, i) => (i === index ? value : t)),
     }));
   };
 
@@ -77,13 +82,16 @@ export default function EditScheduleScreen() {
 
   const handleSave = () => {
     if (times.some((t) => !isValidTime(t))) {
-      setError('All times must be HH:MM (24-hour format).'); return;
+      setError('All times must be HH:MM (24-hour format).');
+      return;
     }
     if (startDate && !isValidDate(startDate)) {
-      setError('Start date must be YYYY-MM-DD.'); return;
+      setError('Start date must be YYYY-MM-DD.');
+      return;
     }
     if (endDate && !isValidDate(endDate)) {
-      setError('End date must be YYYY-MM-DD.'); return;
+      setError('End date must be YYYY-MM-DD.');
+      return;
     }
 
     setError('');
@@ -111,9 +119,7 @@ export default function EditScheduleScreen() {
             deactivateMutation.mutate(id!, {
               onSuccess: () => router.back(),
               onError: (err: unknown) => {
-                setError(
-                  err instanceof Error ? err.message : 'Failed to remove schedule.'
-                );
+                setError(err instanceof Error ? err.message : 'Failed to remove schedule.');
               },
             }),
         },
@@ -162,10 +168,7 @@ export default function EditScheduleScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.form}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           <Text style={styles.fieldLabel}>Times of Day (HH:MM 24-hour)</Text>
           {times.map((t, i) => (
             <TextInput
@@ -188,20 +191,14 @@ export default function EditScheduleScreen() {
                 {DAY_LABELS.map((label, i) => (
                   <TouchableOpacity
                     key={i}
-                    style={[
-                      styles.dayChip,
-                      days.includes(i) && styles.dayChipActive,
-                    ]}
+                    style={[styles.dayChip, days.includes(i) && styles.dayChipActive]}
                     onPress={() => toggleDay(i)}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: days.includes(i) }}
                     accessibilityLabel={label}
                   >
                     <Text
-                      style={[
-                        styles.dayChipText,
-                        days.includes(i) && styles.dayChipTextActive,
-                      ]}
+                      style={[styles.dayChipText, days.includes(i) && styles.dayChipTextActive]}
                     >
                       {label}
                     </Text>
@@ -236,7 +233,9 @@ export default function EditScheduleScreen() {
           />
 
           {error ? (
-            <Text style={styles.errorText} accessibilityRole="alert">{error}</Text>
+            <Text style={styles.errorText} accessibilityRole="alert">
+              {error}
+            </Text>
           ) : null}
 
           <Button
@@ -271,42 +270,63 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.light.background },
   flex: { flex: 1 },
   center: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    padding: 32, gap: 12, backgroundColor: Colors.light.background,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    gap: 12,
+    backgroundColor: Colors.light.background,
   },
   header: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.light.primary,
-    paddingTop: 52, paddingBottom: 14, paddingHorizontal: 16,
+    paddingTop: 52,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
   },
   headerBtn: { minWidth: 70, paddingVertical: 6 },
   headerBtnText: { fontSize: FontSizes.caregiver.body, color: '#FFFFFF' },
   headerCenter: { flex: 1, alignItems: 'center' },
   title: {
     fontSize: FontSizes.caregiver.headline,
-    fontWeight: FontWeights.bold, color: '#FFFFFF',
+    fontWeight: FontWeights.bold,
+    color: '#FFFFFF',
   },
   subtitle: {
-    fontSize: FontSizes.caregiver.label, color: '#FFFFFF', opacity: 0.85, marginTop: 2,
+    fontSize: FontSizes.caregiver.label,
+    color: '#FFFFFF',
+    opacity: 0.85,
+    marginTop: 2,
   },
   form: { padding: 20, gap: 10 },
   fieldLabel: {
-    fontSize: FontSizes.caregiver.body, fontWeight: FontWeights.semibold,
-    color: Colors.light.onBackground, marginTop: 6,
+    fontSize: FontSizes.caregiver.body,
+    fontWeight: FontWeights.semibold,
+    color: Colors.light.onBackground,
+    marginTop: 6,
   },
   input: { backgroundColor: Colors.light.background },
   daysRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   dayChip: {
-    width: 44, height: 44, borderRadius: 22,
-    borderWidth: 1.5, borderColor: Colors.light.border,
-    alignItems: 'center', justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Colors.light.surface,
   },
   dayChipActive: { borderColor: Colors.light.primary, backgroundColor: Colors.light.primary },
   dayChipText: { fontSize: 12, color: Colors.light.secondary, fontWeight: FontWeights.medium },
   dayChipTextActive: { color: '#FFFFFF', fontWeight: FontWeights.bold },
   errorText: { color: Colors.light.danger, fontSize: FontSizes.caregiver.body },
-  backLink: { color: Colors.light.primary, fontSize: FontSizes.caregiver.body, fontWeight: FontWeights.semibold },
+  backLink: {
+    color: Colors.light.primary,
+    fontSize: FontSizes.caregiver.body,
+    fontWeight: FontWeights.semibold,
+  },
   saveButton: { marginTop: 8, borderRadius: 8 },
   removeButton: { borderRadius: 8, borderColor: Colors.light.danger },
   buttonContent: { height: 52 },

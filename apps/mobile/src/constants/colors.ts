@@ -3,15 +3,15 @@
 
 export const Colors = {
   light: {
-    primary: '#1B6CA8',       // Deep Blue — 5.02:1 on white ✅
-    confirm: '#2E7D32',       // Deep Green — 7.23:1 on white ✅
-    snooze: '#E65100',        // Amber — 4.59:1 on white ✅
-    danger: '#C62828',        // Deep Red — 7.11:1 on white ✅
+    primary: '#1B6CA8', // Deep Blue — 5.02:1 on white ✅
+    confirm: '#2E7D32', // Deep Green — 7.23:1 on white ✅
+    snooze: '#E65100', // Amber — 4.59:1 on white ✅
+    danger: '#C62828', // Deep Red — 7.11:1 on white ✅
     background: '#FFFFFF',
     surface: '#F5F5F5',
-    onBackground: '#212121',  // Primary text — 16.1:1 ✅
+    onBackground: '#212121', // Primary text — 16.1:1 ✅
     onSurface: '#212121',
-    secondary: '#616161',     // Secondary text — 5.74:1 ✅
+    secondary: '#616161', // Secondary text — 5.74:1 ✅
     border: '#E0E0E0',
     disabled: '#9E9E9E',
     onPrimary: '#FFFFFF',

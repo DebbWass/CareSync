@@ -15,12 +15,7 @@ export async function signIn(email: string, password: string) {
  * Register a new user. Passes name and role as metadata so the DB trigger
  * (handle_new_user) can populate the public.users table automatically.
  */
-export async function signUp(
-  email: string,
-  password: string,
-  name: string,
-  role: UserRole
-) {
+export async function signUp(email: string, password: string, name: string, role: UserRole) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -28,7 +23,7 @@ export async function signUp(
       data: { name, role },
     },
   });
-  
+
   if (error) {
     console.error('[signUp] Auth signup failed:', error.message);
     throw error;
@@ -48,11 +43,7 @@ export async function signOut() {
  * Returns null if not found (e.g. trigger hasn't run yet after signUp).
  */
 export async function getProfile(userId: string): Promise<User | null> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
 
   if (error) {
     // PGRST116 = "no rows returned" — normal on first login before trigger fires

@@ -48,8 +48,14 @@ export default function EditMedicationScreen() {
   const isDirty = Object.keys(edits).length > 0;
 
   const handleSave = () => {
-    if (!name.trim()) { setError('Medication name is required.'); return; }
-    if (!dosage.trim()) { setError('Dosage is required.'); return; }
+    if (!name.trim()) {
+      setError('Medication name is required.');
+      return;
+    }
+    if (!dosage.trim()) {
+      setError('Dosage is required.');
+      return;
+    }
     if (!id) return;
 
     setError('');
@@ -131,7 +137,9 @@ export default function EditMedicationScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Edit Medication</Text>
           {patientName ? (
-            <Text style={styles.subtitle} numberOfLines={1}>for {patientName}</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              for {patientName}
+            </Text>
           ) : null}
         </View>
         <View style={styles.headerBtn} />
@@ -141,10 +149,7 @@ export default function EditMedicationScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.form}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           <TextInput
             label="Medication Name *"
             value={name}

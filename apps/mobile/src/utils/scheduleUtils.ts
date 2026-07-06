@@ -13,22 +13,30 @@ export const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 /** Number of time slots required for a given frequency. */
 export function timeSlotsForFrequency(freq: FrequencyType): number {
   switch (freq) {
-    case 'daily': return 1;
-    case 'twice_daily': return 2;
-    case 'three_times_daily': return 3;
+    case 'daily':
+      return 1;
+    case 'twice_daily':
+      return 2;
+    case 'three_times_daily':
+      return 3;
     case 'weekly':
-    case 'custom': return 1; // minimum; user can add more
+    case 'custom':
+      return 1; // minimum; user can add more
   }
 }
 
 /** Default times of day for a given frequency. */
 export function defaultTimesForFrequency(freq: FrequencyType): string[] {
   switch (freq) {
-    case 'daily': return ['08:00'];
-    case 'twice_daily': return ['08:00', '20:00'];
-    case 'three_times_daily': return ['08:00', '14:00', '20:00'];
+    case 'daily':
+      return ['08:00'];
+    case 'twice_daily':
+      return ['08:00', '20:00'];
+    case 'three_times_daily':
+      return ['08:00', '14:00', '20:00'];
     case 'weekly':
-    case 'custom': return ['08:00'];
+    case 'custom':
+      return ['08:00'];
   }
 }
 

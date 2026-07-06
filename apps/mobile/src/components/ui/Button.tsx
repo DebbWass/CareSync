@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  StyleSheet,
-  ViewStyle,
-  ActivityIndicator,
-} from 'react-native';
+import { TouchableOpacity, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
 import { Text } from './Text';
 import { Colors } from '../../constants/colors';
 import { MIN_TOUCH_TARGET_DP } from '../../constants/config';
@@ -13,7 +8,7 @@ interface Props {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'confirm' | 'snooze' | 'danger' | 'outline';
-  size?: 'default' | 'large';   // 'large' = patient-app primary button
+  size?: 'default' | 'large'; // 'large' = patient-app primary button
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -24,9 +19,9 @@ interface Props {
 const variantStyles: Record<string, { bg: string; text: string }> = {
   primary: { bg: Colors.light.primary, text: Colors.light.onPrimary },
   confirm: { bg: Colors.light.confirm, text: Colors.light.onConfirm },
-  snooze:  { bg: Colors.light.snooze,  text: Colors.light.onSnooze  },
-  danger:  { bg: Colors.light.danger,  text: Colors.light.onDanger  },
-  outline: { bg: 'transparent',        text: Colors.light.primary   },
+  snooze: { bg: Colors.light.snooze, text: Colors.light.onSnooze },
+  danger: { bg: Colors.light.danger, text: Colors.light.onDanger },
+  outline: { bg: 'transparent', text: Colors.light.primary },
 };
 
 // Accessible button with enforced minimum touch targets.
@@ -70,12 +65,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={colors.text} />
       ) : (
-        <Text
-          size={isLarge ? 28 : 16}
-          weight="bold"
-          color={colors.text}
-          align="center"
-        >
+        <Text size={isLarge ? 28 : 16} weight="bold" color={colors.text} align="center">
           {label}
         </Text>
       )}

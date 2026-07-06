@@ -25,7 +25,7 @@ export function usePendingEvent() {
     queryKey: eventKeys.pending(patientId ?? ''),
     queryFn: () => (patientId ? getPendingEvent(patientId) : null),
     enabled: !!patientId,
-    refetchInterval: 60 * 1000,   // check for new reminders every minute
+    refetchInterval: 60 * 1000, // check for new reminders every minute
     refetchOnWindowFocus: true,
   });
 }

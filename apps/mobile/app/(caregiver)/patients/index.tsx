@@ -37,7 +37,10 @@ export default function PatientManagementScreen() {
   const [inviteSuccess, setInviteSuccess] = useState('');
 
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) { setInviteError('Enter an email address.'); return; }
+    if (!inviteEmail.trim()) {
+      setInviteError('Enter an email address.');
+      return;
+    }
     setInviteError('');
     setInviteSuccess('');
     setInviteLoading(true);
@@ -143,13 +146,12 @@ export default function PatientManagementScreen() {
               {/* Pending invitations */}
               {pendingLoading ? null : pending.length > 0 ? (
                 <>
-                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-                    Pending Invitations
-                  </Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Pending Invitations</Text>
                   {pending.map((rel) => (
                     <View key={rel.id} style={styles.pendingRow}>
                       <Text style={styles.pendingName}>
-                        {(rel as PatientCaregiverRelationship & { patient?: { name?: string } }).patient?.name ?? 'Awaiting acceptance'}
+                        {(rel as PatientCaregiverRelationship & { patient?: { name?: string } })
+                          .patient?.name ?? 'Awaiting acceptance'}
                       </Text>
                       <Text style={styles.pendingStatus}>⏳ Pending</Text>
                     </View>
@@ -173,8 +175,10 @@ export default function PatientManagementScreen() {
                 router.push({
                   pathname: '/(caregiver)/medications',
                   params: {
-                    patientId: (item as PatientCaregiverRelationship & { patient: User }).patient.id,
-                    patientName: (item as PatientCaregiverRelationship & { patient: User }).patient.name,
+                    patientId: (item as PatientCaregiverRelationship & { patient: User }).patient
+                      .id,
+                    patientName: (item as PatientCaregiverRelationship & { patient: User }).patient
+                      .name,
                   },
                 })
               }
@@ -215,9 +219,7 @@ function PatientRow({ rel, onRevoke, onViewMedications }: PatientRowProps) {
   return (
     <View style={styles.patientRow}>
       <View style={styles.patientAvatar}>
-        <Text style={styles.patientAvatarText}>
-          {rel.patient.name.charAt(0).toUpperCase()}
-        </Text>
+        <Text style={styles.patientAvatarText}>{rel.patient.name.charAt(0).toUpperCase()}</Text>
       </View>
       <View style={styles.patientInfo}>
         <Text style={styles.patientName}>{rel.patient.name}</Text>
@@ -251,27 +253,38 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.light.background },
   flex: { flex: 1 },
   header: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.light.primary,
-    paddingTop: 52, paddingBottom: 14, paddingHorizontal: 16,
+    paddingTop: 52,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
   },
   headerBtn: { minWidth: 70, paddingVertical: 6 },
   headerBtnText: {
-    fontSize: FontSizes.caregiver.body, color: '#FFFFFF', fontWeight: FontWeights.semibold,
+    fontSize: FontSizes.caregiver.body,
+    color: '#FFFFFF',
+    fontWeight: FontWeights.semibold,
   },
   title: {
-    flex: 1, textAlign: 'center',
+    flex: 1,
+    textAlign: 'center',
     fontSize: FontSizes.caregiver.headline,
-    fontWeight: FontWeights.bold, color: '#FFFFFF',
+    fontWeight: FontWeights.bold,
+    color: '#FFFFFF',
   },
   list: { padding: 16, paddingBottom: 40 },
   listHeader: { marginBottom: 8 },
   sectionTitle: {
     fontSize: FontSizes.caregiver.title,
-    fontWeight: FontWeights.bold, color: Colors.light.onBackground, marginBottom: 4,
+    fontWeight: FontWeights.bold,
+    color: Colors.light.onBackground,
+    marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: FontSizes.caregiver.label, color: Colors.light.secondary, marginBottom: 10,
+    fontSize: FontSizes.caregiver.label,
+    color: Colors.light.secondary,
+    marginBottom: 10,
   },
   inviteRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   inviteInput: { flex: 1, backgroundColor: Colors.light.background },
@@ -279,38 +292,60 @@ const styles = StyleSheet.create({
   errorText: { color: Colors.light.danger, fontSize: FontSizes.caregiver.label, marginTop: 4 },
   successText: { color: Colors.light.confirm, fontSize: FontSizes.caregiver.label, marginTop: 4 },
   pendingRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: Colors.light.surface, borderRadius: 8, padding: 12,
-    borderWidth: 1, borderColor: Colors.light.border, marginTop: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.light.surface,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    marginTop: 6,
   },
   pendingName: { fontSize: FontSizes.caregiver.body, color: Colors.light.onBackground },
   pendingStatus: { fontSize: FontSizes.caregiver.label, color: Colors.light.secondary },
   patientRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.light.surface, borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: Colors.light.border, gap: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.surface,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    gap: 12,
   },
   patientAvatar: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: Colors.light.primary, alignItems: 'center', justifyContent: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   patientAvatarText: { fontSize: 20, fontWeight: FontWeights.bold, color: '#FFFFFF' },
   patientInfo: { flex: 1, gap: 2 },
   patientName: {
     fontSize: FontSizes.caregiver.title,
-    fontWeight: FontWeights.semibold, color: Colors.light.onBackground,
+    fontWeight: FontWeights.semibold,
+    color: Colors.light.onBackground,
   },
   patientEmail: { fontSize: FontSizes.caregiver.label, color: Colors.light.secondary },
   patientActions: { flexDirection: 'row', gap: 8 },
   actionBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.light.border, alignItems: 'center', justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   revokeBtn: { backgroundColor: '#FFEBEE' },
   actionBtnText: { fontSize: 18 },
   revokeBtnText: { fontSize: 16, color: Colors.light.danger, fontWeight: FontWeights.bold },
   emptyText: {
-    fontSize: FontSizes.caregiver.body, color: Colors.light.secondary, textAlign: 'center',
+    fontSize: FontSizes.caregiver.body,
+    color: Colors.light.secondary,
+    textAlign: 'center',
     marginTop: 16,
   },
 });

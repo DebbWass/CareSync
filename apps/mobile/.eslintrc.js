@@ -30,5 +30,26 @@ module.exports = {
   env: {
     'react-native/react-native': true,
   },
-  ignorePatterns: ['node_modules/', 'dist/', '.expo/', 'babel.config.js'],
+  overrides: [
+    {
+      // Screens must go through the data layer (services + query hooks),
+      // never talk to Supabase directly.
+      files: ['app/**/*.{ts,tsx}'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['**/lib/supabase'],
+                message:
+                  'Screens must not import the Supabase client directly — use a service from src/services or a query hook from src/hooks.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+  ignorePatterns: ['node_modules/', 'dist/', '.expo/', 'coverage/', 'babel.config.js'],
 };

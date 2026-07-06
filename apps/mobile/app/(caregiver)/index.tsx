@@ -19,7 +19,11 @@ export default function CaregiverDashboard() {
   const { data: alertCount = 0 } = useUnreadAlertCount();
 
   const handleSignOut = async () => {
-    try { await signOut(); } catch (e) { console.error(e); }
+    try {
+      await signOut();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -27,9 +31,7 @@ export default function CaregiverDashboard() {
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>
-            Hello, {profile?.name?.split(' ')[0] ?? 'Caregiver'}
-          </Text>
+          <Text style={styles.greeting}>Hello, {profile?.name?.split(' ')[0] ?? 'Caregiver'}</Text>
           <Text style={styles.headerSubtitle}>Caregiver Dashboard</Text>
         </View>
 
@@ -48,18 +50,13 @@ export default function CaregiverDashboard() {
           <Text style={styles.alertIcon}>🔔</Text>
           {alertCount > 0 && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {alertCount > 99 ? '99+' : alertCount}
-              </Text>
+              <Text style={styles.badgeText}>{alertCount > 99 ? '99+' : alertCount}</Text>
             </View>
           )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* ── Patients ─────────────────────────────────────────────────── */}
         <SectionHeader title="YOUR PATIENTS" />
 
@@ -141,9 +138,7 @@ export default function CaregiverDashboard() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionHeader({ title }: { title: string }) {
-  return (
-    <Text style={styles.sectionHeader}>{title}</Text>
-  );
+  return <Text style={styles.sectionHeader}>{title}</Text>;
 }
 
 interface PatientCardProps {
@@ -205,9 +200,7 @@ function ActionCard({ icon, label, onPress, highlight }: ActionCardProps) {
       accessibilityLabel={label}
     >
       <Text style={styles.actionIcon}>{icon}</Text>
-      <Text style={[styles.actionLabel, highlight && styles.actionLabelHighlight]}>
-        {label}
-      </Text>
+      <Text style={[styles.actionLabel, highlight && styles.actionLabelHighlight]}>{label}</Text>
     </TouchableOpacity>
   );
 }

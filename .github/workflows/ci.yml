@@ -13,23 +13,15 @@ jobs:
     defaults:
       run:
         working-directory: apps/mobile
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: apps/mobile/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run TypeScript type check
-        run: npx tsc --noEmit
+      - run: npm ci
+      - run: npx tsc --noEmit
 
   lint:
     name: ESLint
@@ -37,20 +29,107 @@ jobs:
     defaults:
       run:
         working-directory: apps/mobile
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: ESLINT_USE_FLAT_CONFIG=false npx eslint . --ext .ts,.tsx --max-warnings 0
 
-      - name: Install dependencies
-        run: npm ci
+  format:
+    name: Prettier Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
 
-      - name: Run ESLint
-        run: ESLINT_USE_FLAT_CONFIG=false npx eslint . --ext .ts,.tsx --max-warnings 0
+  unit-tests:
+    name: Jest Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npm run test:coverage
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-coverage
+          path: apps/mobile/coverage/lcov.info
+          retention-days: 14
+
+  edge-function-tests:
+    name: Edge Function Tests (Deno)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: supabase/functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test tests/
+
+  db-tests:
+    name: Database Tests (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start database and apply migrations + seed
+        run: supabase db start
+      - name: Run pgTAP suite
+        run: supabase test db
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Non-blocking for now — flips to blocking in the release-prep milestone.
+      - run: npm audit --omit=dev --audit-level=high || echo "::warning::npm audit found issues (non-blocking until release prep)"
+
+  bundle-smoke:
+    name: Bundle Smoke (expo export)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - name: Export Android JS bundle
+        run: npx expo export --platform android --output-dir /tmp/export-smoke
