@@ -11,6 +11,15 @@
     "signOutFailed": "Sign out failed",
     "error": "Something went wrong"
   },
+  "errors": {
+    "network": "No connection. Please check your internet and try again.",
+    "auth": "Your session has expired. Please sign in again.",
+    "permission": "You don't have access to this information.",
+    "notFound": "This item could not be found.",
+    "conflict": "This already exists.",
+    "unknown": "Something went wrong. Please try again.",
+    "retryHint": "Tries to load the information again"
+  },
   "tabs": {
     "today": "Today",
     "history": "History",
