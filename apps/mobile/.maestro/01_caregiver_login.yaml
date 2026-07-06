@@ -1,0 +1,31 @@
+appId: host.exp.exponent
+name: Caregiver Login
+---
+- launchApp:
+    clearState: true
+
+# Wait for login screen
+- assertVisible: "CareSync"
+- assertVisible: "Sign In"
+
+# Fill credentials
+- tapOn:
+    label: "Email address"
+- inputText: ${CAREGIVER_EMAIL}
+
+- tapOn:
+    label: "Password"
+- inputText: ${CAREGIVER_PASSWORD}
+
+# Submit
+- tapOn:
+    label: "Sign in to CareSync"
+
+# Verify caregiver dashboard loaded
+- assertVisible: "Caregiver Dashboard"
+
+# Sign out to leave clean state
+- tapOn:
+    label: "Sign out"
+
+- assertVisible: "Sign In"

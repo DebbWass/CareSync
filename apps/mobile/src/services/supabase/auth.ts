@@ -28,7 +28,12 @@ export async function signUp(
       data: { name, role },
     },
   });
-  if (error) throw error;
+  
+  if (error) {
+    console.error('[signUp] Auth signup failed:', error.message);
+    throw error;
+  }
+
   return data;
 }
 

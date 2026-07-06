@@ -1,8 +1,8 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import * as SecureStore from 'expo-secure-store';
+import { create } from 'zustand/index.js';
+import { persist, createJSONStorage } from 'zustand/middleware.js';
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import type { User, UserRole } from '../types';
+import { LargeSecureStore } from '../lib/secureStorage';
 
 interface AuthState {
   session: Session | null;
@@ -45,11 +45,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'caresync-auth',
-      storage: createJSONStorage(() => ({
-        getItem: (name: string) => SecureStore.getItemAsync(name),
-        setItem: (name: string, value: string) => SecureStore.setItemAsync(name, value),
-        removeItem: (name: string) => SecureStore.deleteItemAsync(name),
-      })),
+      storage: createJSONStorage(() => LargeSecureStore),
       // Only persist the profile and role — session is managed by Supabase Auth
       partialize: (state) => ({
         profile: state.profile,
