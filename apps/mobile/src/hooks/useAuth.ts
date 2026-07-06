@@ -1,29 +1,34 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
-import { fetchProfile } from '../services/supabase/auth';
+import { getProfile } from '../services/supabase/auth';
 import { registerPushToken, unregisterPushToken } from '../services/notifications/registration';
 
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 // Bootstraps auth state from Supabase and keeps the authStore in sync.
 // Mount this once in the root layout.
-export function useAuthListener() {
-  const { setSession, setProfile, clearAuth, session } = useAuthStore();
+// Returns `isReady` — true once the persisted session (and profile, if any)
+// has been resolved, so the router can gate redirects until state is known.
+export function useAuthListener(): { isReady: boolean } {
+  const { setSession, setProfile, clearAuth } = useAuthStore();
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     // Restore existing session on mount
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       if (data.session?.user) {
-        fetchProfile(data.session.user.id)
-          .then(setProfile)
-          .catch(() => {
-            // Profile fetch failed — session may be stale
-            clearAuth();
-          });
+        const profile = await getProfile(data.session.user.id);
+        if (profile) {
+          setProfile(profile);
+        } else {
+          // Profile missing — session is unusable for role routing
+          clearAuth();
+        }
       }
+      setIsReady(true);
     });
 
     // Listen for sign-in, sign-out, and token refresh events
@@ -32,14 +37,23 @@ export function useAuthListener() {
         setSession(newSession);
 
         if (event === 'SIGNED_IN' && newSession?.user) {
-          const profile = await fetchProfile(newSession.user.id);
-          setProfile(profile);
-          if (!IS_EXPO_GO) registerPushToken(newSession.user.id);
+          const profile = await getProfile(newSession.user.id);
+          if (profile) {
+            setProfile(profile);
+            if (!IS_EXPO_GO) {
+              // Push token registration failure is non-fatal
+              await registerPushToken(newSession.user.id).catch(() => {});
+            }
+          } else {
+            // Keep auth state coherent if profile bootstrap fails.
+            clearAuth();
+          }
         }
 
         if (event === 'SIGNED_OUT') {
-          if (!IS_EXPO_GO && session?.user?.id) {
-            unregisterPushToken(session.user.id);
+          const signedOutUserId = useAuthStore.getState().supabaseUser?.id;
+          if (!IS_EXPO_GO && signedOutUserId) {
+            await unregisterPushToken(signedOutUserId);
           }
           clearAuth();
         }
@@ -50,4 +64,6 @@ export function useAuthListener() {
       listener.subscription.unsubscribe();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { isReady };
 }

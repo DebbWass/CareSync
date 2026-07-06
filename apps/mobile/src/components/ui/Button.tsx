@@ -3,7 +3,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ViewStyle,
-  TextStyle,
   ActivityIndicator,
 } from 'react-native';
 import { Text } from './Text';

@@ -18,8 +18,9 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-anon-key',
   {
     auth: {
-      // Persist sessions across app restarts using AsyncStorage
-      storage: AsyncStorage,
+      // Persist sessions across app restarts using chunked SecureStore
+      // (never plaintext AsyncStorage — these are healthcare auth tokens)
+      storage: LargeSecureStore,
       autoRefreshToken: true,
       persistSession: true,
       // Disable URL-based session detection (not applicable in React Native)
