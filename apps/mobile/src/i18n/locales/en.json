@@ -33,6 +33,27 @@
     "unknown": "Something went wrong. Please try again.",
     "retryHint": "Tries to load the information again"
   },
+  "alerts": {
+    "title": "Alerts",
+    "unreadCount": "{{count}} unread",
+    "readAll": "Read all",
+    "readAllLabel": "Mark all alerts as read",
+    "markRead": "Mark as read",
+    "unreadPrefix": "Unread.",
+    "forPatient": "for {{name}}",
+    "scheduledAt": "Scheduled: {{time}}",
+    "scheduledA11y": "scheduled {{time}}",
+    "listLabel": "Alert list",
+    "emptyTitle": "No alerts",
+    "emptyBody": "All patients are up to date with their medications.",
+    "defaultPatientName": "Patient",
+    "type": {
+      "missed": "Missed dose",
+      "snoozed_limit": "Snooze limit reached",
+      "low_adherence": "Low adherence",
+      "new_medication": "New medication"
+    }
+  },
   "tabs": {
     "today": "Today",
     "history": "History",
