@@ -1,9 +1,23 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const CHUNK_SIZE = 1800;
+const IS_WEB = Platform.OS === 'web';
+
+function getWebStorage(): Storage | null {
+  if (!IS_WEB) return null;
+  try {
+    return globalThis.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 export const LargeSecureStore = {
   async getItem(key: string): Promise<string | null> {
+    const webStorage = getWebStorage();
+    if (webStorage) return webStorage.getItem(key);
+
     const countStr = await SecureStore.getItemAsync(`${key}_count`);
     if (!countStr) return SecureStore.getItemAsync(key);
     const count = parseInt(countStr, 10);
@@ -17,6 +31,12 @@ export const LargeSecureStore = {
   },
 
   async setItem(key: string, value: string): Promise<void> {
+    const webStorage = getWebStorage();
+    if (webStorage) {
+      webStorage.setItem(key, value);
+      return;
+    }
+
     if (value.length <= CHUNK_SIZE) {
       await SecureStore.setItemAsync(key, value);
       return;
@@ -32,6 +52,12 @@ export const LargeSecureStore = {
   },
 
   async removeItem(key: string): Promise<void> {
+    const webStorage = getWebStorage();
+    if (webStorage) {
+      webStorage.removeItem(key);
+      return;
+    }
+
     const countStr = await SecureStore.getItemAsync(`${key}_count`);
     await SecureStore.deleteItemAsync(key);
     if (!countStr) return;

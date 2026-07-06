@@ -1,0 +1,9 @@
+appId: host.exp.exponent
+# For a development build, replace with your app's bundle ID:
+# appId: com.caresync.app
+
+env:
+  CAREGIVER_EMAIL: ${CAREGIVER_EMAIL}
+  CAREGIVER_PASSWORD: ${CAREGIVER_PASSWORD}
+  PATIENT_EMAIL: ${PATIENT_EMAIL}
+  PATIENT_PASSWORD: ${PATIENT_PASSWORD}

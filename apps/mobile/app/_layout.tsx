@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
-import { Stack, router, useSegments, useRootNavigationState } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Redirect, Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PaperProvider } from 'react-native-paper';
 import { useAuthStore } from '../src/store/authStore';
@@ -13,9 +14,10 @@ import type { NotificationData } from '../src/types/notifications';
 
 // Remote push notifications are not supported in Expo Go SDK 53+
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const IS_NATIVE_MOBILE = Platform.OS === 'ios' || Platform.OS === 'android';
 
 // How foreground notifications behave while the app is open (standalone only)
-if (!IS_EXPO_GO) {
+if (!IS_EXPO_GO && IS_NATIVE_MOBILE) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
@@ -31,25 +33,31 @@ function AuthGuard() {
   const { session, role } = useAuthStore();
   const segments = useSegments();
   const navigationState = useRootNavigationState();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!navigationState?.key) return; // navigator not mounted yet
+    setIsMounted(true);
+  }, []);
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const inPatientGroup = segments[0] === '(patient)';
-    const inCaregiverGroup = segments[0] === '(caregiver)';
+  if (!isMounted || !navigationState?.key) {
+    return null;
+  }
 
-    if (!session) {
-      if (!inAuthGroup) router.replace('/(auth)/login');
-      return;
-    }
+  const inAuthGroup = segments[0] === '(auth)';
+  const inPatientGroup = segments[0] === '(patient)';
+  const inCaregiverGroup = segments[0] === '(caregiver)';
 
-    if (role === 'patient' && !inPatientGroup) {
-      router.replace('/(patient)');
-    } else if (role === 'caregiver' && !inCaregiverGroup) {
-      router.replace('/(caregiver)');
-    }
-  }, [session, role, segments, navigationState?.key]);
+  if (!session) {
+    return inAuthGroup ? null : <Redirect href="/(auth)/login" />;
+  }
+
+  if (role === 'patient' && !inPatientGroup) {
+    return <Redirect href="/(patient)" />;
+  }
+
+  if (role === 'caregiver' && !inCaregiverGroup) {
+    return <Redirect href="/(caregiver)" />;
+  }
 
   return null;
 }
@@ -58,12 +66,12 @@ export default function RootLayout() {
   useAuthListener();
 
   useEffect(() => {
-    if (!IS_EXPO_GO) setupNotificationChannels().catch(() => {});
+    if (!IS_EXPO_GO && IS_NATIVE_MOBILE) setupNotificationChannels().catch(() => {});
   }, []);
 
   // Handle notification taps (deep-link to reminder screen) — standalone builds only
   useEffect(() => {
-    if (IS_EXPO_GO) return;
+    if (IS_EXPO_GO || !IS_NATIVE_MOBILE) return;
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {

@@ -23,23 +23,61 @@ export default function RegisterScreen() {
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackError, setFeedbackError] = useState(false);
 
   async function handleRegister() {
+    setFeedbackMessage('');
+    setFeedbackError(false);
+
     if (!name.trim() || !email.trim() || !password || !role) {
-      Alert.alert('Missing fields', 'Please fill in all fields and select your role.');
+      const msg = 'Please fill in all fields and select your role.';
+      setFeedbackMessage(msg);
+      setFeedbackError(true);
+      Alert.alert('Missing fields', msg);
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+      const msg = 'Password must be at least 8 characters.';
+      setFeedbackMessage(msg);
+      setFeedbackError(true);
+      Alert.alert('Weak password', msg);
       return;
     }
 
     setLoading(true);
     try {
-      await signUp(email.trim().toLowerCase(), password, name.trim(), role);
-      // AuthGuard in _layout.tsx handles redirect once session is active
+      console.log('[Register] Starting signup for email:', email.trim().toLowerCase());
+      const result = await signUp(email.trim().toLowerCase(), password, name.trim(), role);
+      
+      if (result.session) {
+        // If auth returns a session immediately, route explicitly so user sees progress.
+        router.replace(role === 'caregiver' ? '/(caregiver)' : '/(patient)');
+        return;
+      }
+
+      // Check if email verification is required
+      if (result.user && !result.user.email_confirmed_at) {
+        const msg = `We sent a confirmation link to ${result.user.email}. Please verify your email, then sign in.`;
+        setFeedbackMessage(msg);
+        setFeedbackError(false);
+        Alert.alert(
+          'Verify your email',
+          msg,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else {
+        // Account created and auto-confirmed (or email verification disabled)
+        setFeedbackMessage('Account created. Redirecting now...');
+        setFeedbackError(false);
+        Alert.alert('Success', 'Account created. Redirecting now.');
+        router.replace(role === 'caregiver' ? '/(caregiver)' : '/(patient)');
+      }
     } catch (err: unknown) {
+      console.error('[Register] Signup error:', err);
       const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setFeedbackMessage(message);
+      setFeedbackError(true);
       Alert.alert('Registration failed', message);
     } finally {
       setLoading(false);
@@ -135,6 +173,16 @@ export default function RegisterScreen() {
           loading={loading}
           accessibilityLabel="Submit registration form"
         />
+
+        {feedbackMessage ? (
+          <Text
+            size={14}
+            color={feedbackError ? Colors.light.danger : Colors.light.secondary}
+            align="center"
+          >
+            {feedbackMessage}
+          </Text>
+        ) : null}
 
         <Button
           label="Already have an account? Sign In"

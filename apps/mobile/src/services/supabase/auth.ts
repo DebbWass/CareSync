@@ -15,7 +15,24 @@ export async function signUp(
       data: { name, role },
     },
   });
-  if (error) throw error;
+  
+  if (error) {
+    console.error('[signUp] Auth signup failed:', error.message);
+    throw error;
+  }
+  
+  // Log the signup response to debug email verification flow
+  console.log('[signUp] Signup successful:', {
+    userId: data.user?.id,
+    email: data.user?.email,
+    emailConfirmed: data.user?.email_confirmed_at,
+  });
+  
+  // If email_confirmed_at is null, email verification is required
+  if (!data.user?.email_confirmed_at) {
+    console.warn('[signUp] Email verification required — check your inbox');
+  }
+  
   return data;
 }
 

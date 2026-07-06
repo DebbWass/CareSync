@@ -1,0 +1,54 @@
+appId: host.exp.exponent
+name: Caregiver - Add and Remove Medication
+---
+- launchApp:
+    clearState: true
+
+# Login as caregiver
+- assertVisible: "Sign In"
+- tapOn:
+    label: "Email address"
+- inputText: ${CAREGIVER_EMAIL}
+- tapOn:
+    label: "Password"
+- inputText: ${CAREGIVER_PASSWORD}
+- tapOn:
+    label: "Sign in to CareSync"
+- assertVisible: "Caregiver Dashboard"
+
+# Navigate to medications via a patient card
+- tapOn:
+    label: "Add medication"
+
+# Fill add medication form
+- tapOn:
+    label: "Medication name, required"
+- inputText: "Test Aspirin E2E"
+
+- tapOn:
+    label: "Dosage, required"
+- inputText: "100mg"
+
+- tapOn:
+    label: "Instructions, optional"
+- inputText: "Take with water"
+
+# Save
+- tapOn:
+    label: "Save medication"
+
+# Verify it appears in the list
+- assertVisible: "Test Aspirin E2E"
+
+# Clean up: remove the test medication
+- tapOn: "Test Aspirin E2E"
+- assertVisible: "Edit Medication"
+
+- tapOn:
+    label: "Remove this medication"
+
+# Confirm the alert dialog
+- tapOn: "Remove"
+
+# Back on medications list — test medication should be gone
+- assertNotVisible: "Test Aspirin E2E"

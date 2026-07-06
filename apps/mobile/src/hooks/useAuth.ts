@@ -10,7 +10,7 @@ const IS_EXPO_GO = Constants.appOwnership === 'expo';
 // Bootstraps auth state from Supabase and keeps the authStore in sync.
 // Mount this once in the root layout.
 export function useAuthListener() {
-  const { setSession, setProfile, clearAuth, session } = useAuthStore();
+  const { setSession, setProfile, clearAuth } = useAuthStore();
 
   useEffect(() => {
     // Restore existing session on mount
@@ -32,14 +32,22 @@ export function useAuthListener() {
         setSession(newSession);
 
         if (event === 'SIGNED_IN' && newSession?.user) {
-          const profile = await fetchProfile(newSession.user.id);
-          setProfile(profile);
-          if (!IS_EXPO_GO) registerPushToken(newSession.user.id);
+          try {
+            const profile = await fetchProfile(newSession.user.id);
+            setProfile(profile);
+            if (!IS_EXPO_GO) {
+              await registerPushToken(newSession.user.id);
+            }
+          } catch {
+            // Keep auth state coherent if profile bootstrap fails.
+            clearAuth();
+          }
         }
 
         if (event === 'SIGNED_OUT') {
-          if (!IS_EXPO_GO && session?.user?.id) {
-            unregisterPushToken(session.user.id);
+          const signedOutUserId = useAuthStore.getState().supabaseUser?.id;
+          if (!IS_EXPO_GO && signedOutUserId) {
+            await unregisterPushToken(signedOutUserId);
           }
           clearAuth();
         }

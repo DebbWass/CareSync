@@ -17,7 +17,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.caresync.app",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSUserNotificationsUsageDescription": "CareSync uses notifications to remind you when it's time to take your medications.",
         "NSCameraUsageDescription": "CareSync may use the camera for profile photos.",
         "UIStatusBarStyle": "UIStatusBarStyleLightContent"
@@ -29,7 +31,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1B6CA8"
       },
-      "edgeToEdgeEnabled": false,
+      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -49,10 +51,9 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/icon.png",
           "color": "#1B6CA8",
-          "defaultChannel": "medications",
-          "sounds": ["./assets/sounds/medication-reminder.wav"]
+          "defaultChannel": "medications"
         }
       ]
     ],
@@ -60,8 +61,9 @@
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "68cddae8-4c62-4cf5-a57c-0ae1d1ab9e65"
       }
     }
   }

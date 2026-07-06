@@ -101,7 +101,7 @@ export default function LoginScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text size={14} color={Colors.light.secondary} align="center">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
           </Text>
           <Button
             label="Create Account"
