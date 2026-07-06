@@ -5,29 +5,27 @@
 import { SectionList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSchedulesForPatient } from '../../../src/hooks/useSchedules';
-import {
-  DAY_LABELS,
-  FREQUENCY_LABELS,
-  formatDays,
-  formatTimes,
-} from '../../../src/utils/scheduleUtils';
+import { DAY_LABELS, formatDays, formatTimes } from '../../../src/utils/scheduleUtils';
+import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 import type { ScheduleWithMedication } from '../../../src/services/supabase/schedules';
 
 export default function ScheduleListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { patientId, patientName } = useLocalSearchParams<{
     patientId: string;
     patientName: string;
   }>();
 
-  const { data: schedules = [], isLoading, error } = useSchedulesForPatient(patientId);
+  const { data: schedules = [], isLoading, error, refetch } = useSchedulesForPatient(patientId);
 
   // Group by medication name
   const grouped = schedules.reduce<Record<string, ScheduleWithMedication[]>>((acc, s) => {
-    const key = s.medications?.name ?? 'Unknown';
+    const key = s.medications?.name ?? t('schedules.unknownMedication');
     if (!acc[key]) acc[key] = [];
     acc[key].push(s);
     return acc;
@@ -62,12 +60,12 @@ export default function ScheduleListScreen() {
           onPress={() => router.back()}
           style={styles.headerBtn}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.backLabel')}
         >
-          <Text style={styles.headerBtnText}>← Back</Text>
+          <Text style={styles.headerBtnText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Schedules</Text>
+          <Text style={styles.title}>{t('schedules.title')}</Text>
           {patientName ? (
             <Text style={styles.subtitle} numberOfLines={1}>
               {patientName}
@@ -78,9 +76,9 @@ export default function ScheduleListScreen() {
           onPress={() => handleAdd()}
           style={styles.headerBtn}
           accessibilityRole="button"
-          accessibilityLabel="Add schedule"
+          accessibilityLabel={t('schedules.addLabel')}
         >
-          <Text style={[styles.headerBtnText, styles.addText]}>+ Add</Text>
+          <Text style={[styles.headerBtnText, styles.addText]}>{t('common.add')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -90,11 +88,7 @@ export default function ScheduleListScreen() {
           <ActivityIndicator size="large" color={Colors.light.primary} />
         </View>
       ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText} accessibilityRole="alert">
-            Could not load schedules.
-          </Text>
-        </View>
+        <ErrorBanner error={error} onRetry={refetch} />
       ) : (
         <SectionList
           sections={sections}
@@ -106,9 +100,9 @@ export default function ScheduleListScreen() {
               <TouchableOpacity
                 onPress={() => handleAdd(data[0]?.medication_id, title)}
                 accessibilityRole="button"
-                accessibilityLabel={`Add schedule for ${title}`}
+                accessibilityLabel={t('schedules.addTimeFor', { name: title })}
               >
-                <Text style={styles.sectionAddBtn}>+ Add time</Text>
+                <Text style={styles.sectionAddBtn}>{t('schedules.addTime')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -119,14 +113,15 @@ export default function ScheduleListScreen() {
           SectionSeparatorComponent={() => <View style={{ height: 12 }} />}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyTitle}>No schedules yet</Text>
+              <Text style={styles.emptyTitle}>{t('schedules.emptyTitle')}</Text>
               <Text style={styles.emptyBody}>
-                Tap &quot;+ Add&quot; to create the first schedule for{' '}
-                {patientName ?? 'this patient'}.
+                {t('schedules.emptyBody', {
+                  name: patientName ?? t('schedules.defaultPatientName'),
+                })}
               </Text>
             </View>
           }
-          accessibilityLabel="Schedule list"
+          accessibilityLabel={t('schedules.listLabel')}
         />
       )}
     </View>
@@ -142,9 +137,10 @@ function ScheduleRow({
   schedule: ScheduleWithMedication;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const timesLabel = formatTimes(schedule.times_of_day);
   const daysLabel = formatDays(schedule.days_of_week);
-  const freqLabel = FREQUENCY_LABELS[schedule.frequency_type];
+  const freqLabel = t(`schedules.frequency.${schedule.frequency_type}`);
 
   return (
     <TouchableOpacity
@@ -152,7 +148,7 @@ function ScheduleRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${freqLabel}, ${timesLabel}, ${daysLabel}`}
-      accessibilityHint="Double tap to edit this schedule"
+      accessibilityHint={t('schedules.editHint')}
     >
       <View style={styles.rowDetails}>
         <Text style={styles.freqLabel}>{freqLabel}</Text>
@@ -177,8 +173,9 @@ function ScheduleRow({
           </View>
         ) : null}
         <Text style={styles.dateRange}>
-          From {schedule.start_date}
-          {schedule.end_date ? ` to ${schedule.end_date}` : ' (ongoing)'}
+          {schedule.end_date
+            ? t('schedules.dateRange', { start: schedule.start_date, end: schedule.end_date })
+            : t('schedules.dateOngoing', { start: schedule.start_date })}
         </Text>
       </View>
       <Text style={styles.chevron}>›</Text>

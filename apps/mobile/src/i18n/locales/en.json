@@ -96,6 +96,27 @@
     "viewMedsLabel": "View medications for {{name}}",
     "removeLabel": "Remove {{name}}"
   },
+  "schedules": {
+    "title": "Schedules",
+    "addLabel": "Add schedule",
+    "addTime": "+ Add time",
+    "addTimeFor": "Add schedule for {{name}}",
+    "editHint": "Double tap to edit this schedule",
+    "listLabel": "Schedule list",
+    "emptyTitle": "No schedules yet",
+    "emptyBody": "Tap \"+ Add\" to create the first schedule for {{name}}.",
+    "defaultPatientName": "this patient",
+    "unknownMedication": "Unknown",
+    "dateOngoing": "From {{start}} (ongoing)",
+    "dateRange": "From {{start}} to {{end}}",
+    "frequency": {
+      "daily": "Daily",
+      "twice_daily": "Twice daily",
+      "three_times_daily": "Three times daily",
+      "weekly": "Weekly",
+      "custom": "Custom"
+    }
+  },
   "tabs": {
     "today": "Today",
     "history": "History",
