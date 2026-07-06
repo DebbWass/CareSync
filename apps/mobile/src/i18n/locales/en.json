@@ -7,9 +7,22 @@
     "delete": "Delete",
     "retry": "Retry",
     "loading": "Loading…",
+    "back": "← Back",
+    "backLabel": "Go back",
+    "add": "+ Add",
     "signOut": "Sign out",
     "signOutFailed": "Sign out failed",
     "error": "Something went wrong"
+  },
+  "medications": {
+    "title": "Medications",
+    "addLabel": "Add medication",
+    "addHint": "Double tap to add a new medication for this patient",
+    "editHint": "Double tap to edit this medication",
+    "listLabel": "Medication list",
+    "emptyTitle": "No medications yet",
+    "emptyBody": "Tap \"+ Add\" to create the first medication for {{name}}.",
+    "defaultPatientName": "this patient"
   },
   "errors": {
     "network": "No connection. Please check your internet and try again.",
