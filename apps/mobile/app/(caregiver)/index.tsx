@@ -130,7 +130,9 @@ export default function CaregiverDashboard() {
           <ActionCard
             icon="🔔"
             label={
-              alertCount > 0 ? t('dashboard.alertsWithCount', { count: alertCount }) : t('tabs.alerts')
+              alertCount > 0
+                ? t('dashboard.alertsWithCount', { count: alertCount })
+                : t('tabs.alerts')
             }
             onPress={() => router.push('/(caregiver)/alerts')}
             highlight={alertCount > 0}

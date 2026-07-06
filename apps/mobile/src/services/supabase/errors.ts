@@ -10,13 +10,7 @@
  * render a localized, non-technical message via <ErrorBanner/>.
  */
 
-export type AppErrorCode =
-  | 'network'
-  | 'auth'
-  | 'permission'
-  | 'notFound'
-  | 'conflict'
-  | 'unknown';
+export type AppErrorCode = 'network' | 'auth' | 'permission' | 'notFound' | 'conflict' | 'unknown';
 
 export class AppError extends Error {
   readonly code: AppErrorCode;
