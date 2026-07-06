@@ -72,6 +72,30 @@
       "new_medication": "New medication"
     }
   },
+  "patients": {
+    "title": "My Patients",
+    "inviteTitle": "Invite a Patient",
+    "inviteSubtitle": "Enter the email address of the patient's CareSync account.",
+    "inviteEmailLabel": "Patient email",
+    "inviteEmailA11y": "Patient email address",
+    "inviteButton": "Invite",
+    "inviteButtonA11y": "Send invitation",
+    "inviteEmptyEmail": "Enter an email address.",
+    "inviteSuccess": "Invitation sent to {{email}}.",
+    "inviteNotFound": "No patient account found with that email address.",
+    "inviteConflict": "You have already sent an invitation to this patient.",
+    "pendingTitle": "Pending Invitations",
+    "pendingAwaiting": "Awaiting acceptance",
+    "pendingBadge": "⏳ Pending",
+    "activeTitle": "Active Patients ({{count}})",
+    "emptyText": "No active patients yet. Send an invitation above.",
+    "removeTitle": "Remove Patient",
+    "removeMessage": "Remove {{name}} from your patients? You will no longer receive alerts for them.",
+    "removeConfirm": "Remove",
+    "removeFailed": "Could not remove the patient",
+    "viewMedsLabel": "View medications for {{name}}",
+    "removeLabel": "Remove {{name}}"
+  },
   "tabs": {
     "today": "Today",
     "history": "History",
