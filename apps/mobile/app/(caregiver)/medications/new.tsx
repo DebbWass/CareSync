@@ -13,11 +13,14 @@ import {
 } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useCreateMedication } from '../../../src/hooks/useMedications';
+import { normalizeSupabaseError } from '../../../src/services/supabase/errors';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 
 export default function NewMedicationScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { patientId, patientName } = useLocalSearchParams<{
     patientId: string;
@@ -33,15 +36,15 @@ export default function NewMedicationScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError('Medication name is required.');
+      setError(t('medications.form.nameRequired'));
       return;
     }
     if (!dosage.trim()) {
-      setError('Dosage is required (e.g. "10mg" or "2 tablets").');
+      setError(t('medications.form.dosageRequired'));
       return;
     }
     if (!patientId) {
-      setError('No patient selected.');
+      setError(t('medications.form.noPatient'));
       return;
     }
 
@@ -58,8 +61,7 @@ export default function NewMedicationScreen() {
           router.back();
         },
         onError: (err: unknown) => {
-          const msg = err instanceof Error ? err.message : 'Failed to save medication.';
-          setError(msg);
+          setError(t(normalizeSupabaseError(err).messageKey));
         },
       }
     );
@@ -72,16 +74,16 @@ export default function NewMedicationScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Cancel and go back"
+          accessibilityLabel={t('medications.form.cancelLabel')}
           style={styles.headerBtn}
         >
-          <Text style={styles.headerBtnText}>Cancel</Text>
+          <Text style={styles.headerBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Add Medication</Text>
+          <Text style={styles.title}>{t('medications.form.addTitle')}</Text>
           {patientName ? (
             <Text style={styles.subtitle} numberOfLines={1}>
-              for {patientName}
+              {t('medications.form.forPatient', { name: patientName })}
             </Text>
           ) : null}
         </View>
@@ -94,36 +96,36 @@ export default function NewMedicationScreen() {
       >
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           <TextInput
-            label="Medication Name *"
+            label={t('medications.form.nameLabel')}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Medication name, required"
-            placeholder="e.g. Metformin"
+            accessibilityLabel={t('medications.form.nameA11y')}
+            placeholder={t('medications.form.namePlaceholder')}
           />
 
           <TextInput
-            label="Dosage *"
+            label={t('medications.form.dosageLabel')}
             value={dosage}
             onChangeText={setDosage}
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Dosage, required"
-            placeholder="e.g. 500mg — 1 tablet"
+            accessibilityLabel={t('medications.form.dosageA11y')}
+            placeholder={t('medications.form.dosagePlaceholder')}
           />
 
           <TextInput
-            label="Instructions (optional)"
+            label={t('medications.form.instructionsLabel')}
             value={instructions}
             onChangeText={setInstructions}
             mode="outlined"
             multiline
             numberOfLines={3}
             style={styles.input}
-            accessibilityLabel="Instructions, optional"
-            placeholder="e.g. Take with food and water"
+            accessibilityLabel={t('medications.form.instructionsA11y')}
+            placeholder={t('medications.form.instructionsPlaceholder')}
           />
 
           {error ? (
@@ -139,9 +141,9 @@ export default function NewMedicationScreen() {
             disabled={createMutation.isPending}
             style={styles.saveButton}
             contentStyle={styles.saveButtonContent}
-            accessibilityLabel="Save medication"
+            accessibilityLabel={t('medications.form.saveA11y')}
           >
-            Save Medication
+            {t('medications.form.saveButton')}
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -22,7 +22,41 @@
     "listLabel": "Medication list",
     "emptyTitle": "No medications yet",
     "emptyBody": "Tap \"+ Add\" to create the first medication for {{name}}.",
-    "defaultPatientName": "this patient"
+    "defaultPatientName": "this patient",
+    "form": {
+      "addTitle": "Add Medication",
+      "forPatient": "for {{name}}",
+      "cancelLabel": "Cancel and go back",
+      "nameLabel": "Medication Name *",
+      "nameA11y": "Medication name, required",
+      "namePlaceholder": "e.g. Metformin",
+      "nameRequired": "Medication name is required.",
+      "dosageLabel": "Dosage *",
+      "dosageA11y": "Dosage, required",
+      "dosagePlaceholder": "e.g. 500mg — 1 tablet",
+      "dosageRequired": "Dosage is required (e.g. \"10mg\" or \"2 tablets\").",
+      "instructionsLabel": "Instructions (optional)",
+      "instructionsA11y": "Instructions, optional",
+      "instructionsPlaceholder": "e.g. Take with food and water",
+      "noPatient": "No patient selected.",
+      "saveButton": "Save Medication",
+      "saveA11y": "Save medication"
+    },
+    "edit": {
+      "title": "Edit Medication",
+      "saveButton": "Save Changes",
+      "saveA11y": "Save changes",
+      "manageSchedules": "📅 Manage Schedules",
+      "manageSchedulesA11y": "Manage schedules for this medication",
+      "removeButton": "Remove Medication",
+      "removeA11y": "Remove this medication",
+      "removeHint": "Removes the medication from the active list. History is preserved.",
+      "removeTitle": "Remove Medication",
+      "removeMessage": "Remove \"{{name}}\" from the active medication list? This cannot be undone, but all history is preserved.",
+      "removeConfirm": "Remove",
+      "notFound": "Medication not found.",
+      "goBack": "← Go back"
+    }
   },
   "errors": {
     "network": "No connection. Please check your internet and try again.",
