@@ -1,2 +1,0 @@
--- Intentionally empty seed file for local development.
--- Add non-production sample data here when needed.

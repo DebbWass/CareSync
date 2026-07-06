@@ -1,4 +1,4 @@
--- CareSync Performance Indexes
+-- CareSync — Performance indexes + alert dedup constraint
 -- Optimized for the most frequent query patterns:
 -- 1. Scheduler: find upcoming pending events
 -- 2. Patient: view own history (most recent first)
@@ -21,6 +21,14 @@ CREATE INDEX idx_events_medication_time
 -- medication_events: scheduler overdue detection — status + time
 CREATE INDEX idx_events_status_time
     ON public.medication_events (status, scheduled_time);
+
+-- alerts: DEDUP — a caregiver gets at most ONE alert of a given type per event.
+-- The caregiver-alert Edge Function inserts with ON CONFLICT DO NOTHING, so a
+-- double-fired webhook becomes a no-op instead of a duplicate alert.
+-- (event_id is nullable — alerts without an event, e.g. low_adherence, are
+-- not deduplicated by this index; NULLs never collide in a unique index.)
+CREATE UNIQUE INDEX idx_alerts_dedup
+    ON public.alerts (caregiver_id, event_id, alert_type);
 
 -- alerts: caregiver unread inbox — partial index for common filter
 CREATE INDEX idx_alerts_caregiver_unread

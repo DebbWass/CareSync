@@ -1,8 +1,12 @@
--- CareSync Row-Level Security Policies
+-- CareSync — Row-Level Security policies
 -- Enforces patient/caregiver data isolation at the database level.
 -- No data from one patient is ever visible to an unrelated caregiver.
+--
+-- Write paths intentionally NOT granted to clients (service_role only):
+-- * medication_events INSERT — created by the medication-scheduler Edge Function
+-- * medication_events DELETE — never (audit log; also blocked by trigger)
+-- * alerts INSERT            — created by the caregiver-alert Edge Function
 
--- Enable RLS on all tables (no access by default until policies are added)
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patient_caregiver_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.medications ENABLE ROW LEVEL SECURITY;
@@ -12,25 +16,7 @@ ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- Helper: is the current auth user an active caregiver for a given patient?
--- SECURITY DEFINER runs with elevated privileges so the RLS policy evaluator
--- can access patient_caregiver_relationships without a recursive RLS loop.
--- STABLE because result depends only on DB data, not session-varying state.
--- ─────────────────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.is_caregiver_for(patient UUID)
-RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE AS $$
-    SELECT EXISTS (
-        SELECT 1
-        FROM public.patient_caregiver_relationships
-        WHERE caregiver_id = auth.uid()
-          AND patient_id = patient
-          AND status = 'active'
-    );
-$$;
-
--- ─────────────────────────────────────────────────────────────────────────────
--- TABLE: users
+-- users
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Read: own profile + patients you care for + caregivers linked to you (as patient)
@@ -51,7 +37,7 @@ CREATE POLICY "users_update_own" ON public.users
     FOR UPDATE USING (id = auth.uid());
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TABLE: patient_caregiver_relationships
+-- patient_caregiver_relationships
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Both sides of the relationship can see it
@@ -71,7 +57,7 @@ CREATE POLICY "relationships_update" ON public.patient_caregiver_relationships
     );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TABLE: medications
+-- medications
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE POLICY "medications_select" ON public.medications
@@ -90,7 +76,7 @@ CREATE POLICY "medications_update" ON public.medications
 -- No DELETE policy — use is_active = false (soft delete)
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TABLE: medication_schedules
+-- medication_schedules
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE POLICY "schedules_select" ON public.medication_schedules
@@ -121,7 +107,7 @@ CREATE POLICY "schedules_update" ON public.medication_schedules
     );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TABLE: medication_events
+-- medication_events
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE POLICY "events_select" ON public.medication_events
@@ -129,8 +115,8 @@ CREATE POLICY "events_select" ON public.medication_events
         patient_id = auth.uid() OR public.is_caregiver_for(patient_id)
     );
 
--- Only the patient can update their own events (confirm/snooze)
--- patient_id cannot be changed (WITH CHECK ensures it stays the same)
+-- Only the patient can update their own events (confirm/snooze).
+-- Identity columns are additionally frozen by the immutability trigger.
 CREATE POLICY "events_update_patient" ON public.medication_events
     FOR UPDATE
     USING (patient_id = auth.uid())
@@ -140,14 +126,14 @@ CREATE POLICY "events_update_patient" ON public.medication_events
 -- No DELETE policy — medication_events is an immutable audit trail
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TABLE: alerts
+-- alerts
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Caregivers see only their own alerts
 CREATE POLICY "alerts_select" ON public.alerts
     FOR SELECT USING (caregiver_id = auth.uid());
 
--- Caregivers can mark their own alerts as read (is_read = true only)
+-- Caregivers can mark their own alerts as read
 CREATE POLICY "alerts_update_read" ON public.alerts
     FOR UPDATE
     USING (caregiver_id = auth.uid())
@@ -156,7 +142,7 @@ CREATE POLICY "alerts_update_read" ON public.alerts
 -- INSERT is done by the caregiver-alert Edge Function using service_role (bypasses RLS)
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TABLE: push_tokens
+-- push_tokens
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Users manage only their own device tokens

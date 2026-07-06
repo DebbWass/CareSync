@@ -8,6 +8,10 @@
     "ios": "npm run ios --prefix apps/mobile",
     "web": "npm run web --prefix apps/mobile",
     "typecheck": "npm run typecheck --prefix apps/mobile",
-    "lint": "npm run lint --prefix apps/mobile"
+    "lint": "npm run lint --prefix apps/mobile",
+    "test": "npm run test --prefix apps/mobile",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types typescript --local > apps/mobile/src/types/database.ts"
   }
 }
