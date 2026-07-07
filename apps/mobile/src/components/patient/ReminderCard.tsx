@@ -8,18 +8,19 @@
  *  - All elements have accessibilityLabel + accessibilityHint
  *  - High-contrast mode supported via settingsStore
  *  - No color as sole indicator of state (icons + text always accompany color)
+ *
+ * All copy renders through t() (patient.reminder.*); sizes route through the
+ * design-system <Text/>, which multiplies by the user's font-scale setting.
  */
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
+import { Text } from '../ui/Text';
+import { Button } from '../ui/Button';
 import { Colors } from '../../constants/colors';
-import { FontSizes, FontWeights } from '../../constants/typography';
-import {
-  SNOOZE_LIMIT,
-  SNOOZE_OPTIONS_MINUTES,
-  PATIENT_PRIMARY_BUTTON_HEIGHT_DP,
-} from '../../constants/config';
+import { FontSizes } from '../../constants/typography';
+import { SNOOZE_LIMIT, SNOOZE_OPTIONS_MINUTES } from '../../constants/config';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { MedicationEvent } from '../../types';
 
@@ -28,7 +29,7 @@ interface ReminderCardProps {
   onConfirm: () => void;
   onSnooze: (minutes: number) => void;
   isConfirming?: boolean;
-  isSnoozeing?: boolean;
+  isSnoozing?: boolean;
 }
 
 export function ReminderCard({
@@ -36,8 +37,9 @@ export function ReminderCard({
   onConfirm,
   onSnooze,
   isConfirming = false,
-  isSnoozeing = false,
+  isSnoozing = false,
 }: ReminderCardProps) {
+  const { t } = useTranslation();
   const highContrast = useSettingsStore((s) => s.highContrastMode);
   const theme = highContrast ? Colors.highContrast : Colors.light;
 
@@ -47,6 +49,7 @@ export function ReminderCard({
   const scheduledTime = format(new Date(event.scheduled_time), 'h:mm a');
   const snoozesRemaining = Math.max(0, SNOOZE_LIMIT - event.snooze_count);
   const canSnooze = snoozesRemaining > 0 && event.status !== 'taken';
+  const busy = isConfirming || isSnoozing;
 
   const handleSnooze = (minutes: number) => {
     setSelectedSnooze(minutes);
@@ -60,14 +63,16 @@ export function ReminderCard({
     >
       {/* Time indicator */}
       <Text
-        style={[styles.timeText, { color: theme.secondary }]}
-        accessibilityLabel={`Scheduled at ${scheduledTime}`}
+        size={FontSizes.patient.timeIndicator}
+        weight="bold"
+        color={theme.secondary}
+        accessibilityLabel={t('patient.reminder.scheduledAtA11y', { time: scheduledTime })}
       >
         {scheduledTime}
       </Text>
 
-      <Text style={[styles.reminderLabel, { color: theme.secondary }]}>
-        TIME TO TAKE YOUR MEDICATION
+      <Text size={14} weight="semibold" color={theme.secondary} style={styles.reminderLabel}>
+        {t('patient.reminder.timeToTake')}
       </Text>
 
       {/* Medication card */}
@@ -78,58 +83,63 @@ export function ReminderCard({
         ]}
       >
         <Text
-          style={[styles.medicationName, { color: theme.primary }]}
+          size={FontSizes.patient.medicationName}
+          weight="bold"
+          color={theme.primary}
+          align="center"
           accessibilityRole="header"
-          accessibilityLabel={`Medication: ${medication?.name ?? 'Unknown'}`}
+          accessibilityLabel={t('patient.reminder.medicationA11y', {
+            name: medication?.name ?? t('patient.reminder.unknownMedication'),
+          })}
         >
           {medication?.name ?? '—'}
         </Text>
 
         <Text
-          style={[styles.dosage, { color: theme.onSurface }]}
-          accessibilityLabel={`Dosage: ${medication?.dosage ?? ''}`}
+          size={FontSizes.patient.dosage}
+          weight="semibold"
+          color={theme.onSurface}
+          align="center"
+          accessibilityLabel={t('patient.reminder.dosageA11y', {
+            dosage: medication?.dosage ?? '',
+          })}
         >
           {medication?.dosage ?? ''}
         </Text>
 
         {medication?.instructions ? (
           <Text
-            style={[styles.instructions, { color: theme.secondary }]}
-            accessibilityLabel={`Instructions: ${medication.instructions}`}
+            size={FontSizes.patient.instructions}
+            color={theme.secondary}
+            align="center"
+            accessibilityLabel={t('patient.reminder.instructionsA11y', {
+              instructions: medication.instructions,
+            })}
           >
             {medication.instructions}
           </Text>
         ) : null}
       </View>
 
-      {/* Confirm button */}
-      <TouchableOpacity
-        style={[
-          styles.confirmButton,
-          { backgroundColor: theme.confirm },
-          isConfirming && styles.buttonDisabled,
-        ]}
+      {/* Confirm button — the primary action, 80dp min height via size='large' */}
+      <Button
+        label={t('patient.reminder.confirmButton')}
         onPress={onConfirm}
-        disabled={isConfirming || isSnoozeing}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel="Medication taken"
-        accessibilityHint="Double tap to confirm you have taken this medication"
-        accessibilityState={{ disabled: isConfirming || isSnoozeing }}
-      >
-        {isConfirming ? (
-          <ActivityIndicator color={theme.onConfirm} size="large" />
-        ) : (
-          <Text style={[styles.confirmButtonText, { color: theme.onConfirm }]}>
-            ✓ MEDICATION TAKEN
-          </Text>
-        )}
-      </TouchableOpacity>
+        variant="confirm"
+        size="large"
+        textSize={FontSizes.patient.confirmButton}
+        loading={isConfirming}
+        disabled={isSnoozing}
+        accessibilityLabel={t('patient.reminder.confirmLabel')}
+        accessibilityHint={t('patient.reminder.confirmHint')}
+      />
 
       {/* Snooze section */}
       {canSnooze ? (
         <View style={styles.snoozeSection}>
-          <Text style={[styles.snoozeLabel, { color: theme.secondary }]}>Remind me in:</Text>
+          <Text size={FontSizes.patient.body} weight="medium" color={theme.secondary}>
+            {t('patient.reminder.snoozeTitle')}
+          </Text>
 
           <View style={styles.snoozeRow}>
             {SNOOZE_OPTIONS_MINUTES.map((minutes) => (
@@ -138,21 +148,25 @@ export function ReminderCard({
                 style={[
                   styles.snoozeButton,
                   { borderColor: theme.snooze },
-                  isSnoozeing && selectedSnooze === minutes && styles.buttonDisabled,
+                  isSnoozing && selectedSnooze === minutes && styles.buttonDisabled,
                 ]}
                 onPress={() => handleSnooze(minutes)}
-                disabled={isConfirming || isSnoozeing}
+                disabled={busy}
                 activeOpacity={0.75}
                 accessibilityRole="button"
-                accessibilityLabel={`Snooze for ${minutes} minutes`}
-                accessibilityHint={`Double tap to be reminded again in ${minutes} minutes`}
-                accessibilityState={{ disabled: isConfirming || isSnoozeing }}
+                accessibilityLabel={t('patient.reminder.snoozeLabel', { minutes })}
+                accessibilityHint={t('patient.reminder.snoozeHint', { minutes })}
+                accessibilityState={{ disabled: busy }}
               >
-                {isSnoozeing && selectedSnooze === minutes ? (
+                {isSnoozing && selectedSnooze === minutes ? (
                   <ActivityIndicator color={theme.snooze} size="small" />
                 ) : (
-                  <Text style={[styles.snoozeButtonText, { color: theme.snooze }]}>
-                    {minutes} min
+                  <Text
+                    size={FontSizes.patient.snoozeButton}
+                    weight="semibold"
+                    color={theme.snooze}
+                  >
+                    {t('patient.reminder.snoozeMinutes', { minutes })}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -160,22 +174,27 @@ export function ReminderCard({
           </View>
 
           <Text
-            style={[styles.snoozesRemaining, { color: theme.secondary }]}
-            accessibilityLabel={`${snoozesRemaining} snooze${snoozesRemaining !== 1 ? 's' : ''} remaining before your caregiver is notified`}
+            size={FontSizes.patient.caption}
+            color={theme.secondary}
+            align="center"
+            accessibilityLabel={t('patient.reminder.snoozesRemainingA11y', {
+              count: snoozesRemaining,
+            })}
           >
-            {snoozesRemaining === 1
-              ? '1 snooze remaining — caregiver will be notified after this'
-              : `${snoozesRemaining} snoozes remaining`}
+            {t('patient.reminder.snoozesRemaining', { count: snoozesRemaining })}
           </Text>
         </View>
       ) : (
         <View style={styles.snoozeSection}>
           <Text
-            style={[styles.snoozeExhausted, { color: theme.danger }]}
+            size={FontSizes.patient.body}
+            weight="semibold"
+            color={theme.danger}
+            align="center"
             accessibilityRole="alert"
-            accessibilityLabel="Snooze limit reached. Your caregiver has been notified."
+            accessibilityLabel={t('patient.reminder.snoozeLimitReachedA11y')}
           >
-            ⚠ Snooze limit reached — your caregiver has been notified
+            {t('patient.reminder.snoozeLimitReached')}
           </Text>
         </View>
       )}
@@ -194,13 +213,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     gap: 20,
   },
-  timeText: {
-    fontSize: FontSizes.patient.timeIndicator,
-    fontWeight: FontWeights.bold,
-  },
   reminderLabel: {
-    fontSize: 14,
-    fontWeight: FontWeights.semibold,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
@@ -212,35 +225,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  medicationName: {
-    fontSize: FontSizes.patient.medicationName,
-    fontWeight: FontWeights.bold,
-    textAlign: 'center',
-    lineHeight: FontSizes.patient.medicationName * 1.2,
-  },
-  dosage: {
-    fontSize: FontSizes.patient.dosage,
-    fontWeight: FontWeights.semibold,
-    textAlign: 'center',
-  },
-  instructions: {
-    fontSize: FontSizes.patient.instructions,
-    textAlign: 'center',
-    lineHeight: FontSizes.patient.instructions * 1.5,
-  },
-  confirmButton: {
-    width: '100%',
-    minHeight: PATIENT_PRIMARY_BUTTON_HEIGHT_DP,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  confirmButtonText: {
-    fontSize: FontSizes.patient.confirmButton,
-    fontWeight: FontWeights.bold,
-    letterSpacing: 1,
-  },
   buttonDisabled: {
     opacity: 0.6,
   },
@@ -248,10 +232,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: 12,
-  },
-  snoozeLabel: {
-    fontSize: FontSizes.patient.body,
-    fontWeight: FontWeights.medium,
   },
   snoozeRow: {
     flexDirection: 'row',
@@ -265,19 +245,5 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  snoozeButtonText: {
-    fontSize: FontSizes.patient.snoozeButton,
-    fontWeight: FontWeights.semibold,
-  },
-  snoozesRemaining: {
-    fontSize: FontSizes.patient.caption,
-    textAlign: 'center',
-    lineHeight: FontSizes.patient.caption * 1.5,
-  },
-  snoozeExhausted: {
-    fontSize: FontSizes.patient.body,
-    fontWeight: FontWeights.semibold,
-    textAlign: 'center',
   },
 });

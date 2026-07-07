@@ -58,6 +58,57 @@
       "goBack": "← Go back"
     }
   },
+  "patient": {
+    "home": {
+      "allClearIconLabel": "All clear",
+      "allClearTitle": "All good!",
+      "allClearBody": "No medications due right now.",
+      "historyLink": "View history →",
+      "historyLinkLabel": "View medication history",
+      "historyLinkHint": "Double tap to open your past medication records"
+    },
+    "reminder": {
+      "timeToTake": "TIME TO TAKE YOUR MEDICATION",
+      "scheduledAtA11y": "Scheduled at {{time}}",
+      "medicationA11y": "Medication: {{name}}",
+      "unknownMedication": "Unknown medication",
+      "dosageA11y": "Dosage: {{dosage}}",
+      "instructionsA11y": "Instructions: {{instructions}}",
+      "confirmButton": "✓ MEDICATION TAKEN",
+      "confirmLabel": "Medication taken",
+      "confirmHint": "Double tap to confirm you have taken this medication",
+      "snoozeTitle": "Remind me in:",
+      "snoozeMinutes": "{{minutes}} min",
+      "snoozeLabel": "Snooze for {{minutes}} minutes",
+      "snoozeHint": "Double tap to be reminded again in {{minutes}} minutes",
+      "snoozesRemaining_one": "1 snooze remaining — caregiver will be notified after this",
+      "snoozesRemaining_other": "{{count}} snoozes remaining",
+      "snoozesRemainingA11y_one": "1 snooze remaining before your caregiver is notified",
+      "snoozesRemainingA11y_other": "{{count}} snoozes remaining before your caregiver is notified",
+      "snoozeLimitReached": "⚠ Snooze limit reached — your caregiver has been notified",
+      "snoozeLimitReachedA11y": "Snooze limit reached. Your caregiver has been notified.",
+      "notFoundTitle": "Reminder not found",
+      "notFoundBody": "This reminder may have already been confirmed or expired.",
+      "alreadyTakenTitle": "Already confirmed!",
+      "alreadyTakenBody": "This medication was recorded as taken.",
+      "goHome": "← Go home",
+      "goHomeLabel": "Go to home"
+    },
+    "history": {
+      "title": "Medication History",
+      "listLabel": "Medication history list",
+      "empty": "No medication history yet.",
+      "scheduledAt": "Scheduled: {{time}}",
+      "takenAt": "Taken: {{time}}",
+      "takenAtA11y": "taken at {{time}}",
+      "status": {
+        "taken": "Taken",
+        "missed": "Missed",
+        "snoozed": "Snoozed",
+        "pending": "Pending"
+      }
+    }
+  },
   "errors": {
     "network": "No connection. Please check your internet and try again.",
     "auth": "Your session has expired. Please sign in again.",
@@ -257,7 +308,9 @@
   },
   "tabs": {
     "today": "Today",
+    "todayA11y": "Today — current medication reminders",
     "history": "History",
+    "historyA11y": "History — past medication events",
     "dashboard": "Dashboard",
     "medications": "Medications",
     "schedules": "Schedules",

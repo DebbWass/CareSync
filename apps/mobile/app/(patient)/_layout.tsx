@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text as RNText } from 'react-native';
 import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../src/constants/colors';
 import { signOut } from '../../src/services/supabase/auth';
 
 function HeaderSignOutButton() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   async function handleSignOut() {
@@ -15,8 +17,8 @@ function HeaderSignOutButton() {
     try {
       await signOut();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Could not sign out.';
-      Alert.alert('Sign out failed', message);
+      const message = error instanceof Error ? error.message : t('common.error');
+      Alert.alert(t('common.signOutFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -27,7 +29,7 @@ function HeaderSignOutButton() {
       onPress={handleSignOut}
       hitSlop={8}
       accessibilityRole="button"
-      accessibilityLabel="Sign out"
+      accessibilityLabel={t('common.signOut')}
     >
       <RNText
         style={{
@@ -37,13 +39,14 @@ function HeaderSignOutButton() {
           opacity: loading ? 0.5 : 1,
         }}
       >
-        Sign out
+        {t('common.signOut')}
       </RNText>
     </Pressable>
   );
 }
 
 export default function PatientLayout() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarStyle = useMemo(
     () => ({
@@ -72,21 +75,21 @@ export default function PatientLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Today',
+          title: t('tabs.today'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="pill" color={color} size={size} />
           ),
-          tabBarAccessibilityLabel: 'Today — current medication reminders',
+          tabBarAccessibilityLabel: t('tabs.todayA11y'),
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: t('tabs.history'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="history" color={color} size={size} />
           ),
-          tabBarAccessibilityLabel: 'History — past medication events',
+          tabBarAccessibilityLabel: t('tabs.historyA11y'),
         }}
       />
     </Tabs>

@@ -7,6 +7,7 @@ import {
   snoozeEvent,
 } from '../services/supabase/events';
 import { useAuthStore } from '../store/authStore';
+import type { MedicationEvent } from '../types';
 
 // ── Query keys ────────────────────────────────────────────────────────────────
 
@@ -50,14 +51,48 @@ export function useEventHistory() {
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
+// Both mutations are optimistic: the patient must see the tap land instantly
+// (a fullscreen reminder that keeps sitting there after "TAKEN" invites
+// double-taps and confusion). onMutate snapshots the caches and applies the
+// expected result; onError restores the snapshots; onSettled refetches truth.
 
-/** Confirms a medication was taken. Invalidates pending + history caches. */
+interface EventMutationContext {
+  prevPending: MedicationEvent | null | undefined;
+  prevDetail: MedicationEvent | null | undefined;
+}
+
+/** Confirms a medication was taken. Optimistic; rolls back on failure. */
 export function useConfirmEvent() {
   const qc = useQueryClient();
   const patientId = useAuthStore((s) => s.profile?.id);
   return useMutation({
     mutationFn: (eventId: string) => confirmEvent(eventId),
-    onSuccess: () => {
+    onMutate: async (eventId): Promise<EventMutationContext> => {
+      const pendingKey = eventKeys.pending(patientId ?? '');
+      const detailKey = eventKeys.byId(eventId);
+      // Stop in-flight refetches from overwriting the optimistic state
+      await qc.cancelQueries({ queryKey: pendingKey });
+      await qc.cancelQueries({ queryKey: detailKey });
+
+      const prevPending = qc.getQueryData<MedicationEvent | null>(pendingKey);
+      const prevDetail = qc.getQueryData<MedicationEvent | null>(detailKey);
+
+      // Home: the reminder disappears immediately
+      qc.setQueryData<MedicationEvent | null>(pendingKey, null);
+      // Deep-link screen: flips to the "confirmed" state immediately
+      qc.setQueryData<MedicationEvent | null>(detailKey, (old) =>
+        old ? { ...old, status: 'taken', taken_time: new Date().toISOString() } : old
+      );
+
+      return { prevPending, prevDetail };
+    },
+    onError: (_err, eventId, ctx) => {
+      if (!ctx) return;
+      qc.setQueryData(eventKeys.pending(patientId ?? ''), ctx.prevPending);
+      qc.setQueryData(eventKeys.byId(eventId), ctx.prevDetail);
+    },
+    onSettled: (_data, _err, eventId) => {
+      qc.invalidateQueries({ queryKey: eventKeys.byId(eventId) });
       if (patientId) {
         qc.invalidateQueries({ queryKey: eventKeys.pending(patientId) });
         qc.invalidateQueries({ queryKey: eventKeys.history(patientId) });
@@ -66,17 +101,43 @@ export function useConfirmEvent() {
   });
 }
 
-/** Snoozes the current event. Invalidates the pending event cache. */
+/** Snoozes the current event (atomic RPC). Optimistic; rolls back on failure. */
 export function useSnoozeEvent() {
   const qc = useQueryClient();
   const patientId = useAuthStore((s) => s.profile?.id);
   return useMutation({
     mutationFn: (eventId: string) => snoozeEvent(eventId),
-    onSuccess: (_data, eventId) => {
-      // Optimistically clear the detail cache so the screen refreshes
+    onMutate: async (eventId): Promise<EventMutationContext> => {
+      const pendingKey = eventKeys.pending(patientId ?? '');
+      const detailKey = eventKeys.byId(eventId);
+      await qc.cancelQueries({ queryKey: pendingKey });
+      await qc.cancelQueries({ queryKey: detailKey });
+
+      const prevPending = qc.getQueryData<MedicationEvent | null>(pendingKey);
+      const prevDetail = qc.getQueryData<MedicationEvent | null>(detailKey);
+
+      const applySnooze = (old: MedicationEvent | null | undefined) =>
+        old && old.id === eventId
+          ? { ...old, status: 'snoozed' as const, snooze_count: old.snooze_count + 1 }
+          : old;
+
+      qc.setQueryData<MedicationEvent | null>(pendingKey, applySnooze);
+      qc.setQueryData<MedicationEvent | null>(detailKey, applySnooze);
+
+      return { prevPending, prevDetail };
+    },
+    onError: (_err, eventId, ctx) => {
+      if (!ctx) return;
+      qc.setQueryData(eventKeys.pending(patientId ?? ''), ctx.prevPending);
+      qc.setQueryData(eventKeys.byId(eventId), ctx.prevDetail);
+    },
+    // A null result means the dose was no longer snoozable (e.g. already
+    // confirmed elsewhere) — onSettled's invalidation renders the true state.
+    onSettled: (_data, _err, eventId) => {
       qc.invalidateQueries({ queryKey: eventKeys.byId(eventId) });
       if (patientId) {
         qc.invalidateQueries({ queryKey: eventKeys.pending(patientId) });
+        qc.invalidateQueries({ queryKey: eventKeys.history(patientId) });
       }
     },
   });
