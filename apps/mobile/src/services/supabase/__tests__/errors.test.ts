@@ -26,6 +26,31 @@ describe('normalizeSupabaseError', () => {
     expect(normalizeSupabaseError({ status: 401, message: 'JWT expired' }).code).toBe('auth');
   });
 
+  it.each([
+    ['invalid_credentials', 'invalidCredentials'],
+    ['user_already_exists', 'emailInUse'],
+    ['email_exists', 'emailInUse'],
+    ['weak_password', 'weakPassword'],
+    ['same_password', 'samePassword'],
+    ['over_email_send_rate_limit', 'rateLimit'],
+    ['over_request_rate_limit', 'rateLimit'],
+    ['otp_expired', 'expiredLink'],
+  ])('maps GoTrue code %s to %s', (gotrueCode, appCode) => {
+    const err = normalizeSupabaseError({ code: gotrueCode, message: 'auth says no' });
+    expect(err.code).toBe(appCode);
+    expect(err.messageKey).toBe(`errors.${appCode}`);
+  });
+
+  it('specific GoTrue codes win over the generic 401 → auth mapping', () => {
+    const err = normalizeSupabaseError({
+      code: 'invalid_credentials',
+      status: 400,
+      __isAuthError: true,
+      message: 'Invalid login credentials',
+    });
+    expect(err.code).toBe('invalidCredentials');
+  });
+
   it('falls back to unknown for anything else', () => {
     const err = normalizeSupabaseError({ code: 'XX000', message: 'weird' });
     expect(err.code).toBe('unknown');

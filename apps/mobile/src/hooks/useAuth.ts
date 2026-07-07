@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
-import { getProfile } from '../services/supabase/auth';
+import { getProfileWithRetry } from '../services/supabase/auth';
 import { registerPushToken, unregisterPushToken } from '../services/notifications/registration';
 
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -20,7 +20,9 @@ export function useAuthListener(): { isReady: boolean } {
     supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       if (data.session?.user) {
-        const profile = await getProfile(data.session.user.id);
+        // Retry briefly: right after signup the handle_new_user trigger may
+        // lag, and bouncing a fresh user back to login is worse than a short wait
+        const profile = await getProfileWithRetry(data.session.user.id);
         if (profile) {
           setProfile(profile);
         } else {
@@ -36,7 +38,7 @@ export function useAuthListener(): { isReady: boolean } {
       setSession(newSession);
 
       if (event === 'SIGNED_IN' && newSession?.user) {
-        const profile = await getProfile(newSession.user.id);
+        const profile = await getProfileWithRetry(newSession.user.id);
         if (profile) {
           setProfile(profile);
           if (!IS_EXPO_GO) {
