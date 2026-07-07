@@ -355,6 +355,28 @@ export type Database = {
     }
     Functions: {
       is_caregiver_for: { Args: { patient: string }; Returns: boolean }
+      snooze_event: {
+        Args: { p_event_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          medication_id: string
+          notes: string | null
+          notified_at: string | null
+          patient_id: string
+          schedule_id: string
+          scheduled_time: string
+          snooze_count: number
+          status: Database["public"]["Enums"]["event_status"]
+          taken_time: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "medication_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       alert_type:

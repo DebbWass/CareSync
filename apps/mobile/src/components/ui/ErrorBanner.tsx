@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Text } from './Text';
 import { Button } from './Button';
 import { Colors } from '../../constants/colors';
+import { useSettingsStore } from '../../store/settingsStore';
 import { AppError, normalizeSupabaseError } from '../../services/supabase/errors';
 
 interface Props {
@@ -17,18 +18,20 @@ interface Props {
 // failures look and behave the same everywhere.
 export function ErrorBanner({ error, onRetry }: Props) {
   const { t } = useTranslation();
+  const highContrast = useSettingsStore((s) => s.highContrastMode);
+  const theme = highContrast ? Colors.highContrast : Colors.light;
 
   if (!error) return null;
   const appError = error instanceof AppError ? error : normalizeSupabaseError(error);
 
   return (
     <View
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.danger }]}
       accessibilityRole="alert"
       accessibilityLiveRegion="assertive"
       accessibilityLabel={t(appError.messageKey)}
     >
-      <Text size={16} color={Colors.light.onDanger} align="center" weight="semibold">
+      <Text size={16} color={theme.onDanger} align="center" weight="semibold">
         {t(appError.messageKey)}
       </Text>
       {onRetry ? (
@@ -36,7 +39,7 @@ export function ErrorBanner({ error, onRetry }: Props) {
           label={t('common.retry')}
           onPress={onRetry}
           variant="outline"
-          style={styles.retryButton}
+          style={{ backgroundColor: theme.surface }}
           accessibilityHint={t('errors.retryHint')}
         />
       ) : null}
@@ -46,13 +49,9 @@ export function ErrorBanner({ error, onRetry }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.light.danger,
     borderRadius: 12,
     padding: 16,
     margin: 16,
     gap: 12,
-  },
-  retryButton: {
-    backgroundColor: Colors.light.surface,
   },
 });

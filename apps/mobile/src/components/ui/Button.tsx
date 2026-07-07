@@ -1,14 +1,17 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
 import { Text } from './Text';
-import { Colors } from '../../constants/colors';
-import { MIN_TOUCH_TARGET_DP } from '../../constants/config';
+import { Colors, ThemeColors } from '../../constants/colors';
+import { MIN_TOUCH_TARGET_DP, PATIENT_PRIMARY_BUTTON_HEIGHT_DP } from '../../constants/config';
+import { useSettingsStore } from '../../store/settingsStore';
 
 interface Props {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'confirm' | 'snooze' | 'danger' | 'outline';
   size?: 'default' | 'large'; // 'large' = patient-app primary button
+  /** Label font size override (defaults: 28 for large, 16 for default). */
+  textSize?: number;
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -16,28 +19,34 @@ interface Props {
   accessibilityHint?: string;
 }
 
-const variantStyles: Record<string, { bg: string; text: string }> = {
-  primary: { bg: Colors.light.primary, text: Colors.light.onPrimary },
-  confirm: { bg: Colors.light.confirm, text: Colors.light.onConfirm },
-  snooze: { bg: Colors.light.snooze, text: Colors.light.onSnooze },
-  danger: { bg: Colors.light.danger, text: Colors.light.onDanger },
-  outline: { bg: 'transparent', text: Colors.light.primary },
-};
+function variantColors(theme: ThemeColors): Record<string, { bg: string; text: string }> {
+  return {
+    primary: { bg: theme.primary, text: theme.onPrimary },
+    confirm: { bg: theme.confirm, text: theme.onConfirm },
+    snooze: { bg: theme.snooze, text: theme.onSnooze },
+    danger: { bg: theme.danger, text: theme.onDanger },
+    outline: { bg: 'transparent', text: theme.primary },
+  };
+}
 
 // Accessible button with enforced minimum touch targets.
 // Use variant='confirm' + size='large' for the patient reminder screen.
+// Colors follow the active theme so high-contrast mode applies everywhere.
 export function Button({
   label,
   onPress,
   variant = 'primary',
   size = 'default',
+  textSize,
   loading = false,
   disabled = false,
   style,
   accessibilityLabel,
   accessibilityHint,
 }: Props) {
-  const colors = variantStyles[variant];
+  const highContrast = useSettingsStore((s) => s.highContrastMode);
+  const theme = highContrast ? Colors.highContrast : Colors.light;
+  const colors = variantColors(theme)[variant];
   const isLarge = size === 'large';
 
   return (
@@ -53,10 +62,10 @@ export function Button({
         styles.base,
         {
           backgroundColor: colors.bg,
-          minHeight: isLarge ? 80 : MIN_TOUCH_TARGET_DP,
+          minHeight: isLarge ? PATIENT_PRIMARY_BUTTON_HEIGHT_DP : MIN_TOUCH_TARGET_DP,
           borderRadius: isLarge ? 16 : 10,
           borderWidth: variant === 'outline' ? 2 : 0,
-          borderColor: variant === 'outline' ? Colors.light.primary : undefined,
+          borderColor: variant === 'outline' ? theme.primary : undefined,
           opacity: disabled ? 0.5 : 1,
         },
         style,
@@ -65,7 +74,12 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={colors.text} />
       ) : (
-        <Text size={isLarge ? 28 : 16} weight="bold" color={colors.text} align="center">
+        <Text
+          size={textSize ?? (isLarge ? 28 : 16)}
+          weight="bold"
+          color={colors.text}
+          align="center"
+        >
           {label}
         </Text>
       )}

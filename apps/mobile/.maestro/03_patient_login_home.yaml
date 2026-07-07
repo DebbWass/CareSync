@@ -38,7 +38,7 @@ name: Patient Login and Home Screen
     when:
       visible: 'TIME TO TAKE YOUR MEDICATION'
     commands:
-      - assertVisible: 'MEDICATION TAKEN'
+      - assertVisible: '.*MEDICATION TAKEN'
       - tapOn:
           label: 'Medication taken'
       - assertTrue:

@@ -45,6 +45,8 @@ public.users ──< push_tokens  (one row per device)
 | `20260701000005_indexes.sql` | 11 performance indexes + `idx_alerts_dedup` unique index |
 | `20260701000006_realtime.sql` | `alerts` and `medication_events` added to the `supabase_realtime` publication |
 | `20260701000007_cron_webhooks.sql` | pg_cron job (scheduler every 5 min) + caregiver-alert webhook trigger |
+| `20260707000001_event_notified_at.sql` | `medication_events.notified_at` (one push per dose) + partial index (M4) |
+| `20260707000002_snooze_event_rpc.sql` | `snooze_event(uuid)` atomic snooze RPC, SECURITY INVOKER (M5) |
 
 Later milestones append: `messages` (urgent messaging, M8) and adherence
 views (analytics, M10).
@@ -84,6 +86,7 @@ views (analytics, M10).
 | status | event_status | NO | 'pending' | pending / taken / snoozed / missed |
 | snooze_count | INTEGER | NO | 0 | CHECK >= 0 |
 | notes | TEXT | YES | NULL | Optional notes |
+| notified_at | TIMESTAMPTZ | YES | NULL | When the reminder push was handed to the provider (M4) |
 | created_at | TIMESTAMPTZ | NO | NOW() | Row creation time |
 
 **Status lifecycle:**
@@ -97,8 +100,17 @@ snoozed → missed    (scheduler marks after snooze_count >= SNOOZE_LIMIT)
 
 **Immutability (trigger-enforced, applies to every role including
 service_role):** rows can never be DELETEd, and UPDATEs may only change
-`status`, `taken_time`, `snooze_count`, `notes`. The identity of a dose —
-what, for whom, when — is frozen at creation.
+`status`, `taken_time`, `snooze_count`, `notes`, `notified_at`. The identity
+of a dose — what, for whom, when — is frozen at creation.
+
+**Snoozing is atomic (M5):** the client calls the `snooze_event(uuid)` RPC,
+a single `UPDATE … SET snooze_count = snooze_count + 1` guarded to
+`pending`/`snoozed` status. SECURITY INVOKER, so the patient-only UPDATE
+policy still applies inside the function. Returns the updated row, or NULL
+when the dose was no longer snoozable (the client refetches and shows the
+true state). The SNOOZE_LIMIT cap deliberately stays in app config — RLS
+already lets a patient write `snooze_count` directly, so a SQL cap would add
+duplication, not security.
 
 ---
 
