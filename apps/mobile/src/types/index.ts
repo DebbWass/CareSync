@@ -45,9 +45,9 @@ export interface MedicationSchedule {
   id: string;
   medication_id: string;
   frequency_type: FrequencyType;
-  times_of_day: string[];     // ["08:00", "20:00"]
-  days_of_week?: number[];    // [0=Sun, 1=Mon, ..., 6=Sat]; null = every day
-  start_date: string;         // ISO date string "YYYY-MM-DD"
+  times_of_day: string[]; // ["08:00", "20:00"]
+  days_of_week?: number[]; // [0=Sun, 1=Mon, ..., 6=Sat]; null = every day
+  start_date: string; // ISO date string "YYYY-MM-DD"
   end_date?: string;
   is_active: boolean;
   created_at: string;
@@ -58,11 +58,13 @@ export interface MedicationEvent {
   schedule_id: string;
   medication_id: string;
   patient_id: string;
-  scheduled_time: string;     // ISO timestamp
-  taken_time?: string;        // ISO timestamp; undefined until confirmed
+  scheduled_time: string; // ISO timestamp
+  taken_time?: string; // ISO timestamp; undefined until confirmed
   status: EventStatus;
   snooze_count: number;
   notes?: string;
+  // Set by the scheduler when the reminder push was handed to the provider
+  notified_at?: string;
   created_at: string;
   // Joined data
   medications?: Pick<Medication, 'name' | 'dosage' | 'instructions'>;
@@ -96,5 +98,5 @@ export interface AdherenceStats {
   missed: number;
   snoozed: number;
   pending: number;
-  adherenceRate: number;  // 0–100
+  adherenceRate: number; // 0–100
 }

@@ -31,10 +31,14 @@ export default function PatientHistory() {
 
   const getStatusColor = (status: EventStatus) => {
     switch (status) {
-      case 'taken': return theme.confirm;
-      case 'missed': return theme.danger;
-      case 'snoozed': return theme.snooze;
-      default: return theme.secondary;
+      case 'taken':
+        return theme.confirm;
+      case 'missed':
+        return theme.danger;
+      case 'snoozed':
+        return theme.snooze;
+      default:
+        return theme.secondary;
     }
   };
 
@@ -50,9 +54,7 @@ export default function PatientHistory() {
           item.medications?.name ?? 'Unknown medication',
           cfg.label,
           format(new Date(item.scheduled_time), 'EEEE MMMM d, h:mm a'),
-          item.taken_time
-            ? `taken at ${format(new Date(item.taken_time), 'h:mm a')}`
-            : '',
+          item.taken_time ? `taken at ${format(new Date(item.taken_time), 'h:mm a')}` : '',
         ]
           .filter(Boolean)
           .join(', ')}
@@ -64,10 +66,7 @@ export default function PatientHistory() {
 
         {/* Details */}
         <View style={styles.rowDetails}>
-          <Text
-            style={[styles.medName, { color: theme.onSurface }]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.medName, { color: theme.onSurface }]} numberOfLines={1}>
             {item.medications?.name ?? '—'}
           </Text>
 
@@ -87,9 +86,7 @@ export default function PatientHistory() {
         </View>
 
         {/* Status label */}
-        <Text style={[styles.statusLabel, { color: statusColor }]}>
-          {cfg.label}
-        </Text>
+        <Text style={[styles.statusLabel, { color: statusColor }]}>{cfg.label}</Text>
       </View>
     );
   };
@@ -97,7 +94,12 @@ export default function PatientHistory() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: theme.background, borderBottomColor: theme.border },
+        ]}
+      >
         <Text
           style={[styles.backButton, { color: theme.primary }]}
           onPress={() => router.back()}
@@ -106,10 +108,7 @@ export default function PatientHistory() {
         >
           ← Back
         </Text>
-        <Text
-          style={[styles.title, { color: theme.onBackground }]}
-          accessibilityRole="header"
-        >
+        <Text style={[styles.title, { color: theme.onBackground }]} accessibilityRole="header">
           Medication History
         </Text>
         <View style={styles.headerSpacer} />
@@ -122,10 +121,7 @@ export default function PatientHistory() {
         </View>
       ) : error ? (
         <View style={styles.center}>
-          <Text
-            style={[styles.errorText, { color: theme.danger }]}
-            accessibilityRole="alert"
-          >
+          <Text style={[styles.errorText, { color: theme.danger }]} accessibilityRole="alert">
             Could not load history. Please check your connection.
           </Text>
         </View>
@@ -134,10 +130,7 @@ export default function PatientHistory() {
           data={events}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={[
-            styles.list,
-            events.length === 0 && styles.listEmpty,
-          ]}
+          contentContainerStyle={[styles.list, events.length === 0 && styles.listEmpty]}
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={[styles.emptyText, { color: theme.secondary }]}>

@@ -10,17 +10,16 @@
  *  - No color as sole indicator of state (icons + text always accompany color)
  */
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { format } from 'date-fns';
 import { Colors } from '../../constants/colors';
 import { FontSizes, FontWeights } from '../../constants/typography';
-import { SNOOZE_LIMIT, SNOOZE_OPTIONS_MINUTES, PATIENT_PRIMARY_BUTTON_HEIGHT_DP } from '../../constants/config';
+import {
+  SNOOZE_LIMIT,
+  SNOOZE_OPTIONS_MINUTES,
+  PATIENT_PRIMARY_BUTTON_HEIGHT_DP,
+} from '../../constants/config';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { MedicationEvent } from '../../types';
 
@@ -72,7 +71,12 @@ export function ReminderCard({
       </Text>
 
       {/* Medication card */}
-      <View style={[styles.medicationCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View
+        style={[
+          styles.medicationCard,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
         <Text
           style={[styles.medicationName, { color: theme.primary }]}
           accessibilityRole="header"
@@ -125,9 +129,7 @@ export function ReminderCard({
       {/* Snooze section */}
       {canSnooze ? (
         <View style={styles.snoozeSection}>
-          <Text style={[styles.snoozeLabel, { color: theme.secondary }]}>
-            Remind me in:
-          </Text>
+          <Text style={[styles.snoozeLabel, { color: theme.secondary }]}>Remind me in:</Text>
 
           <View style={styles.snoozeRow}>
             {SNOOZE_OPTIONS_MINUTES.map((minutes) => (

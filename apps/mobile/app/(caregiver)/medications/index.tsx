@@ -5,19 +5,22 @@
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useMedications } from '../../../src/hooks/useMedications';
+import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 import type { Medication } from '../../../src/types';
 
 export default function MedicationListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { patientId, patientName } = useLocalSearchParams<{
     patientId: string;
     patientName: string;
   }>();
 
-  const { data: medications = [], isLoading, error } = useMedications(patientId);
+  const { data: medications = [], isLoading, error, refetch } = useMedications(patientId);
 
   const handleAdd = () => {
     router.push({
@@ -40,25 +43,29 @@ export default function MedicationListScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.backLabel')}
           style={styles.backBtn}
         >
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title} numberOfLines={1}>Medications</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {t('medications.title')}
+          </Text>
           {patientName ? (
-            <Text style={styles.subtitle} numberOfLines={1}>{patientName}</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {patientName}
+            </Text>
           ) : null}
         </View>
         <TouchableOpacity
           onPress={handleAdd}
           accessibilityRole="button"
-          accessibilityLabel="Add medication"
-          accessibilityHint="Double tap to add a new medication for this patient"
+          accessibilityLabel={t('medications.addLabel')}
+          accessibilityHint={t('medications.addHint')}
           style={styles.addBtn}
         >
-          <Text style={styles.addText}>+ Add</Text>
+          <Text style={styles.addText}>{t('common.add')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -68,32 +75,25 @@ export default function MedicationListScreen() {
           <ActivityIndicator size="large" color={Colors.light.primary} />
         </View>
       ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText} accessibilityRole="alert">
-            Could not load medications. Please check your connection.
-          </Text>
-        </View>
+        <ErrorBanner error={error} onRetry={refetch} />
       ) : (
         <FlatList
           data={medications}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <MedicationRow med={item} onPress={() => handleEdit(item)} />
-          )}
-          contentContainerStyle={[
-            styles.list,
-            medications.length === 0 && styles.listEmpty,
-          ]}
+          renderItem={({ item }) => <MedicationRow med={item} onPress={() => handleEdit(item)} />}
+          contentContainerStyle={[styles.list, medications.length === 0 && styles.listEmpty]}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyTitle}>No medications yet</Text>
+              <Text style={styles.emptyTitle}>{t('medications.emptyTitle')}</Text>
               <Text style={styles.emptyBody}>
-                Tap &quot;+ Add&quot; to create the first medication for {patientName ?? 'this patient'}.
+                {t('medications.emptyBody', {
+                  name: patientName ?? t('medications.defaultPatientName'),
+                })}
               </Text>
             </View>
           }
-          accessibilityLabel="Medication list"
+          accessibilityLabel={t('medications.listLabel')}
         />
       )}
     </View>
@@ -102,20 +102,15 @@ export default function MedicationListScreen() {
 
 // ── MedicationRow ─────────────────────────────────────────────────────────────
 
-function MedicationRow({
-  med,
-  onPress,
-}: {
-  med: Medication;
-  onPress: () => void;
-}) {
+function MedicationRow({ med, onPress }: { med: Medication; onPress: () => void }) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity
       style={styles.row}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${med.name}, ${med.dosage}${med.instructions ? `, ${med.instructions}` : ''}`}
-      accessibilityHint="Double tap to edit this medication"
+      accessibilityHint={t('medications.editHint')}
     >
       <View style={styles.rowIcon}>
         <Text style={styles.rowIconText}>💊</Text>

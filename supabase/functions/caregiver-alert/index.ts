@@ -19,6 +19,8 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { decideAlertType } from '../medication-scheduler/logic.ts';
+import { notificationCopy } from '../_shared/localization.ts';
 
 // Must match src/constants/config.ts SNOOZE_LIMIT
 const SNOOZE_LIMIT = 3;
@@ -75,21 +77,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Determine which alert type to fire (if any)
-  let alertType: AlertType | null = null;
-
-  const becameMissed =
-    newRecord.status === 'missed' && oldRecord.status !== 'missed';
-
-  const hitSnoozeLimit =
-    newRecord.snooze_count >= SNOOZE_LIMIT &&
-    oldRecord.snooze_count < SNOOZE_LIMIT;
-
-  if (becameMissed) {
-    alertType = 'missed';
-  } else if (hitSnoozeLimit) {
-    alertType = 'snoozed_limit';
-  }
+  // Determine which alert type to fire (if any) — shared, unit-tested logic
+  const alertType: AlertType | null = decideAlertType(newRecord, oldRecord, SNOOZE_LIMIT);
 
   if (!alertType) {
     return new Response(JSON.stringify({ skipped: true, reason: 'no trigger condition' }), {
@@ -127,6 +116,10 @@ Deno.serve(async (req) => {
   }
 
   // ── Step 2: Insert alert rows (one per caregiver) ──────────────────────────
+  // Dedup: UNIQUE(caregiver_id, event_id, alert_type) + ignoreDuplicates means
+  // a double-fired webhook is a no-op. .select() counts only NEW alerts, and
+  // pushes go only to caregivers whose alert row was actually created — a
+  // webhook retry never re-notifies anyone.
 
   const alertRows = relationships.map((rel) => ({
     patient_id: newRecord.patient_id,
@@ -136,12 +129,13 @@ Deno.serve(async (req) => {
     is_read: false,
   }));
 
-  const { error: insertError } = await supabase
+  const { data: insertedAlerts, error: insertError } = await supabase
     .from('alerts')
     .upsert(alertRows, {
       onConflict: 'caregiver_id,event_id,alert_type',
       ignoreDuplicates: true,
-    });
+    })
+    .select('caregiver_id');
 
   if (insertError) {
     console.error('[caregiver-alert] Failed to insert alerts:', insertError.message);
@@ -151,62 +145,67 @@ Deno.serve(async (req) => {
     });
   }
 
-  // ── Step 3: Push notification to each caregiver ───────────────────────────
+  const newAlertCaregivers = (insertedAlerts ?? []).map((a) => a.caregiver_id);
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const alertTitle =
-    alertType === 'missed' ? 'Missed Medication' : 'Snooze Limit Reached';
-
-  // PHI-safe: no patient name or medication name in the push body
-  const alertBody =
-    alertType === 'missed'
-      ? 'A patient missed their scheduled medication. Tap to review.'
-      : 'A patient has snoozed their medication reminder too many times. Tap to review.';
+  // ── Step 3: Push notification to each newly-alerted caregiver ──────────────
 
   let notifications_sent = 0;
 
-  for (const rel of relationships) {
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        },
-        body: JSON.stringify({
-          user_id: rel.caregiver_id,
-          title: alertTitle,
-          body: alertBody,
-          data: {
-            type: alertType === 'missed' ? 'missed_dose' : 'snooze_limit',
-            event_id: newRecord.id,
-            patient_id: newRecord.patient_id,
-          },
-          channel: 'medications',
-        }),
-      });
+  if (newAlertCaregivers.length > 0) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-      if (!res.ok) {
-        console.error(
-          '[caregiver-alert] send-push failed for caregiver',
-          rel.caregiver_id,
-          res.status
-        );
-      } else {
-        notifications_sent++;
+    // Localize per caregiver (users.language)
+    const { data: caregivers } = await supabase
+      .from('users')
+      .select('id, language')
+      .in('id', newAlertCaregivers);
+    const languageById = new Map((caregivers ?? []).map((u) => [u.id, u.language]));
+
+    for (const caregiverId of newAlertCaregivers) {
+      const copy = notificationCopy(alertType, languageById.get(caregiverId));
+      try {
+        const res = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            user_id: caregiverId,
+            title: copy.title,
+            body: copy.body,
+            // data.type MUST be 'alert' — the app's notification-tap handler
+            // routes on it (src/types/notifications.ts)
+            data: {
+              type: 'alert',
+              event_id: newRecord.id,
+              patient_id: newRecord.patient_id,
+            },
+            // Caregiver alerts use the 'alerts' Android channel (HIGH), not
+            // the patient 'medications' channel (MAX + fullscreen intent)
+            channel: 'alerts',
+          }),
+        });
+
+        if (!res.ok) {
+          console.error(
+            '[caregiver-alert] send-push failed for caregiver',
+            caregiverId,
+            res.status
+          );
+        } else {
+          notifications_sent++;
+        }
+      } catch (err) {
+        console.error('[caregiver-alert] send-push error for caregiver', caregiverId, err);
       }
-    } catch (err) {
-      console.error(
-        '[caregiver-alert] send-push error for caregiver',
-        rel.caregiver_id,
-        err
-      );
     }
   }
 
   return new Response(
     JSON.stringify({
-      alerts_created: alertRows.length,
+      alerts_created: newAlertCaregivers.length,
       notifications_sent,
       alert_type: alertType,
     }),

@@ -43,7 +43,8 @@ describe('DAY_LABELS', () => {
 describe('timeSlotsForFrequency', () => {
   it('returns 1 for daily', () => expect(timeSlotsForFrequency('daily')).toBe(1));
   it('returns 2 for twice_daily', () => expect(timeSlotsForFrequency('twice_daily')).toBe(2));
-  it('returns 3 for three_times_daily', () => expect(timeSlotsForFrequency('three_times_daily')).toBe(3));
+  it('returns 3 for three_times_daily', () =>
+    expect(timeSlotsForFrequency('three_times_daily')).toBe(3));
   it('returns 1 (minimum) for weekly', () => expect(timeSlotsForFrequency('weekly')).toBe(1));
   it('returns 1 (minimum) for custom', () => expect(timeSlotsForFrequency('custom')).toBe(1));
 });
@@ -194,7 +195,7 @@ describe('todayISO', () => {
     expect(isValidDate(today)).toBe(true);
   });
 
-  it('matches today\'s date', () => {
+  it("matches today's date", () => {
     const expected = new Date().toISOString().slice(0, 10);
     expect(todayISO()).toBe(expected);
   });

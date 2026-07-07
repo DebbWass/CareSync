@@ -63,10 +63,7 @@ export default function PatientHome() {
   // ── All clear ───────────────────────────────────────────────────────────────
   return (
     <View style={[styles.center, { backgroundColor: theme.background }]}>
-      <Text
-        style={[styles.allClearIcon, { color: theme.confirm }]}
-        accessibilityLabel="All clear"
-      >
+      <Text style={[styles.allClearIcon, { color: theme.confirm }]} accessibilityLabel="All clear">
         ✓
       </Text>
       <Text

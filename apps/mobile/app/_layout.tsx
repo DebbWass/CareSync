@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MD3LightTheme, PaperProvider } from 'react-native-paper';
+import '../src/i18n'; // side-effect init — must precede any useTranslation()
 import { useAuthStore } from '../src/store/authStore';
 import { useAuthListener } from '../src/hooks/useAuth';
 import { setupNotificationChannels } from '../src/services/notifications/channels';
@@ -82,19 +83,17 @@ export default function RootLayout() {
   useEffect(() => {
     if (IS_EXPO_GO || !IS_NATIVE_MOBILE) return;
 
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data as unknown as NotificationData;
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as unknown as NotificationData;
 
-        if (data?.type === 'reminder' && data.event_id) {
-          router.push(`/reminder/${data.event_id}`);
-        }
-
-        if (data?.type === 'alert') {
-          router.push('/(caregiver)/alerts');
-        }
+      if (data?.type === 'reminder' && data.event_id) {
+        router.push(`/reminder/${data.event_id}`);
       }
-    );
+
+      if (data?.type === 'alert') {
+        router.push('/(caregiver)/alerts');
+      }
+    });
 
     return () => subscription.remove();
   }, []);

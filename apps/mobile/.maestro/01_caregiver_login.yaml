@@ -5,27 +5,27 @@ name: Caregiver Login
     clearState: true
 
 # Wait for login screen
-- assertVisible: "CareSync"
-- assertVisible: "Sign In"
+- assertVisible: 'CareSync'
+- assertVisible: 'Sign In'
 
 # Fill credentials
 - tapOn:
-    label: "Email address"
+    label: 'Email address'
 - inputText: ${CAREGIVER_EMAIL}
 
 - tapOn:
-    label: "Password"
+    label: 'Password'
 - inputText: ${CAREGIVER_PASSWORD}
 
 # Submit
 - tapOn:
-    label: "Sign in to CareSync"
+    label: 'Sign in to CareSync'
 
 # Verify caregiver dashboard loaded
-- assertVisible: "Caregiver Dashboard"
+- assertVisible: 'Caregiver Dashboard'
 
 # Sign out to leave clean state
 - tapOn:
-    label: "Sign out"
+    label: 'Sign out'
 
-- assertVisible: "Sign In"
+- assertVisible: 'Sign In'

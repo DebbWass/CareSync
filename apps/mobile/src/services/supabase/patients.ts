@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { AppError, normalizeSupabaseError } from './errors';
 import type { PatientCaregiverRelationship, User } from '../../types';
 
 /**
@@ -10,15 +11,12 @@ export async function getLinkedPatients(
 ): Promise<(PatientCaregiverRelationship & { patient: User })[]> {
   const { data, error } = await supabase
     .from('patient_caregiver_relationships')
-    .select('*, patient:patient_id(*)')
+    .select('*, patient:users!patient_id(*)')
     .eq('caregiver_id', caregiverId)
     .eq('status', 'active')
     .order('created_at', { ascending: true });
 
-  if (error) {
-    console.warn('[Patients] getLinkedPatients error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as (PatientCaregiverRelationship & { patient: User })[];
 }
 
@@ -30,15 +28,12 @@ export async function getPendingInvitations(
 ): Promise<PatientCaregiverRelationship[]> {
   const { data, error } = await supabase
     .from('patient_caregiver_relationships')
-    .select('*, patient:patient_id(id, name, email)')
+    .select('*, patient:users!patient_id(id, name, email)')
     .eq('caregiver_id', caregiverId)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.warn('[Patients] getPendingInvitations error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as PatientCaregiverRelationship[];
 }
 
@@ -59,19 +54,16 @@ export async function invitePatientByEmail(
     .single();
 
   if (lookupError || !patientUser) {
-    throw new Error('No patient account found with that email address.');
+    // Screens render this as a contextual "no patient with that email" message
+    throw new AppError('notFound', lookupError);
   }
 
   const { error } = await supabase
     .from('patient_caregiver_relationships')
     .insert({ patient_id: patientUser.id, caregiver_id: caregiverId });
 
-  if (error) {
-    if (error.code === '23505') {
-      throw new Error('You have already sent an invitation to this patient.');
-    }
-    throw error;
-  }
+  // 23505 (already invited) normalizes to 'conflict'
+  if (error) throw normalizeSupabaseError(error);
 }
 
 /**
@@ -83,5 +75,5 @@ export async function revokeAccess(relationshipId: string): Promise<void> {
     .update({ status: 'revoked' })
     .eq('id', relationshipId);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }

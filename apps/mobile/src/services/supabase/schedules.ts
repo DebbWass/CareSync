@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { normalizeSupabaseError } from './errors';
 import type { FrequencyType, MedicationSchedule } from '../../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -10,9 +11,9 @@ export interface ScheduleWithMedication extends MedicationSchedule {
 export interface CreateScheduleInput {
   medication_id: string;
   frequency_type: FrequencyType;
-  times_of_day: string[];       // ["08:00", "20:00"]
-  days_of_week?: number[];      // [0..6]; undefined = every day
-  start_date: string;           // "YYYY-MM-DD"
+  times_of_day: string[]; // ["08:00", "20:00"]
+  days_of_week?: number[]; // [0..6]; undefined = every day
+  start_date: string; // "YYYY-MM-DD"
   end_date?: string;
 }
 
@@ -37,17 +38,12 @@ export async function getSchedulesForMedication(
     .eq('is_active', true)
     .order('created_at', { ascending: true });
 
-  if (error) {
-    console.warn('[Schedules] getSchedulesForMedication error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as MedicationSchedule[];
 }
 
 /** All active schedules for a patient, joined with medication name/dosage. */
-export async function getSchedulesForPatient(
-  patientId: string
-): Promise<ScheduleWithMedication[]> {
+export async function getSchedulesForPatient(patientId: string): Promise<ScheduleWithMedication[]> {
   const { data, error } = await supabase
     .from('medication_schedules')
     .select('*, medications!inner(name, dosage, patient_id)')
@@ -55,10 +51,7 @@ export async function getSchedulesForPatient(
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.warn('[Schedules] getSchedulesForPatient error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as ScheduleWithMedication[];
 }
 
@@ -70,38 +63,27 @@ export async function getSchedule(id: string): Promise<MedicationSchedule | null
     .eq('id', id)
     .single();
 
-  if (error) {
-    console.warn('[Schedules] getSchedule error:', error.message);
-    return null;
-  }
+  if (error) throw normalizeSupabaseError(error);
   return data as MedicationSchedule;
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
-export async function createSchedule(
-  input: CreateScheduleInput
-): Promise<MedicationSchedule> {
+export async function createSchedule(input: CreateScheduleInput): Promise<MedicationSchedule> {
   const { data, error } = await supabase
     .from('medication_schedules')
     .insert(input)
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
   return data as MedicationSchedule;
 }
 
-export async function updateSchedule(
-  id: string,
-  input: UpdateScheduleInput
-): Promise<void> {
-  const { error } = await supabase
-    .from('medication_schedules')
-    .update(input)
-    .eq('id', id);
+export async function updateSchedule(id: string, input: UpdateScheduleInput): Promise<void> {
+  const { error } = await supabase.from('medication_schedules').update(input).eq('id', id);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }
 
 export async function deactivateSchedule(id: string): Promise<void> {
@@ -110,5 +92,5 @@ export async function deactivateSchedule(id: string): Promise<void> {
     .update({ is_active: false })
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }

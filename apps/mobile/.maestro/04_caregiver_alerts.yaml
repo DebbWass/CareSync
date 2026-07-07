@@ -5,32 +5,32 @@ name: Caregiver - Alerts Inbox
     clearState: true
 
 # Login as caregiver
-- assertVisible: "Sign In"
+- assertVisible: 'Sign In'
 - tapOn:
-    label: "Email address"
+    label: 'Email address'
 - inputText: ${CAREGIVER_EMAIL}
 - tapOn:
-    label: "Password"
+    label: 'Password'
 - inputText: ${CAREGIVER_PASSWORD}
 - tapOn:
-    label: "Sign in to CareSync"
-- assertVisible: "Caregiver Dashboard"
+    label: 'Sign in to CareSync'
+- assertVisible: 'Caregiver Dashboard'
 
 # Open alerts via the MANAGE section action card (always labelled "Alerts")
-- tapOn: "Alerts"
+- tapOn: 'Alerts'
 
-- assertVisible: "Alerts"
+- assertVisible: 'Alerts'
 
 # If there are unread alerts, mark all as read
 - runFlow:
     when:
-      visible: "Mark all alerts as read"
+      visible: 'Mark all alerts as read'
     commands:
       - tapOn:
-          label: "Mark all alerts as read"
-      - assertNotVisible: "Mark all alerts as read"
+          label: 'Mark all alerts as read'
+      - assertNotVisible: 'Mark all alerts as read'
 
 # Navigate back to dashboard
 - tapOn:
-    label: "Go back"
-- assertVisible: "Caregiver Dashboard"
+    label: 'Go back'
+- assertVisible: 'Caregiver Dashboard'

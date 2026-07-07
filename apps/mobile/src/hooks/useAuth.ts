@@ -32,33 +32,31 @@ export function useAuthListener(): { isReady: boolean } {
     });
 
     // Listen for sign-in, sign-out, and token refresh events
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        setSession(newSession);
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      setSession(newSession);
 
-        if (event === 'SIGNED_IN' && newSession?.user) {
-          const profile = await getProfile(newSession.user.id);
-          if (profile) {
-            setProfile(profile);
-            if (!IS_EXPO_GO) {
-              // Push token registration failure is non-fatal
-              await registerPushToken(newSession.user.id).catch(() => {});
-            }
-          } else {
-            // Keep auth state coherent if profile bootstrap fails.
-            clearAuth();
+      if (event === 'SIGNED_IN' && newSession?.user) {
+        const profile = await getProfile(newSession.user.id);
+        if (profile) {
+          setProfile(profile);
+          if (!IS_EXPO_GO) {
+            // Push token registration failure is non-fatal
+            await registerPushToken(newSession.user.id).catch(() => {});
           }
-        }
-
-        if (event === 'SIGNED_OUT') {
-          const signedOutUserId = useAuthStore.getState().supabaseUser?.id;
-          if (!IS_EXPO_GO && signedOutUserId) {
-            await unregisterPushToken(signedOutUserId);
-          }
+        } else {
+          // Keep auth state coherent if profile bootstrap fails.
           clearAuth();
         }
       }
-    );
+
+      if (event === 'SIGNED_OUT') {
+        const signedOutUserId = useAuthStore.getState().supabaseUser?.id;
+        if (!IS_EXPO_GO && signedOutUserId) {
+          await unregisterPushToken(signedOutUserId);
+        }
+        clearAuth();
+      }
+    });
 
     return () => {
       listener.subscription.unsubscribe();

@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { normalizeSupabaseError } from './errors';
 import type { MedicationEvent } from '../../types';
 import { HISTORY_DEFAULT_DAYS, MISSED_GRACE_PERIOD_MINUTES } from '../../constants/config';
 
@@ -8,9 +9,7 @@ import { HISTORY_DEFAULT_DAYS, MISSED_GRACE_PERIOD_MINUTES } from '../../constan
  * Only returns events within the grace period window (already due or due soon).
  */
 export async function getPendingEvent(patientId: string): Promise<MedicationEvent | null> {
-  const windowEnd = new Date(
-    Date.now() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000
-  ).toISOString();
+  const windowEnd = new Date(Date.now() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000).toISOString();
 
   const { data, error } = await supabase
     .from('medication_events')
@@ -22,10 +21,8 @@ export async function getPendingEvent(patientId: string): Promise<MedicationEven
     .limit(1)
     .maybeSingle();
 
-  if (error) {
-    console.warn('[Events] getPendingEvent error:', error.message);
-    return null;
-  }
+  if (error) throw normalizeSupabaseError(error);
+  // null here is a legitimate "no dose due right now", not a failure
   return data as MedicationEvent | null;
 }
 
@@ -39,10 +36,7 @@ export async function getEventById(eventId: string): Promise<MedicationEvent | n
     .eq('id', eventId)
     .single();
 
-  if (error) {
-    console.warn('[Events] getEventById error:', error.message);
-    return null;
-  }
+  if (error) throw normalizeSupabaseError(error);
   return data as MedicationEvent;
 }
 
@@ -59,7 +53,7 @@ export async function confirmEvent(eventId: string): Promise<void> {
     })
     .eq('id', eventId);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }
 
 /**
@@ -74,7 +68,7 @@ export async function snoozeEvent(eventId: string): Promise<void> {
     .eq('id', eventId)
     .single();
 
-  if (fetchError) throw fetchError;
+  if (fetchError) throw normalizeSupabaseError(fetchError);
 
   const { error } = await supabase
     .from('medication_events')
@@ -84,7 +78,7 @@ export async function snoozeEvent(eventId: string): Promise<void> {
     })
     .eq('id', eventId);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }
 
 /**
@@ -105,9 +99,6 @@ export async function getEventHistory(
     .gte('scheduled_time', since)
     .order('scheduled_time', { ascending: false });
 
-  if (error) {
-    console.warn('[Events] getEventHistory error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as MedicationEvent[];
 }
