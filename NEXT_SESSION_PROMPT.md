@@ -65,16 +65,18 @@ milestones M0–M4 are complete and merged.
 
 ## What to do first
 
-1. If promotion PR #13 (`develop` → `main`) is still open, surface it to the
-   user.
-2. Start **Milestone M5 — the patient reminder experience** on branch
-   `feature/m5-patient-reminder` off `develop`, per the "Next Recommended
-   Tasks" section of PROJECT_HANDOFF.md: atomic `snoozeEvent` fix first, then
-   harden the patient screens (design system + elderly a11y + ErrorBanner +
-   `t()`), optimistic confirm/snooze, then end-to-end validation on a physical
-   EAS dev build (cron → push → tap → confirm → caregiver update, including
-   killed-app cold start), a new Maestro flow, and the user's device-profile
-   checkpoint.
+1. If the **M5 PR** (`feature/m5-patient-reminder` → `develop`) or the
+   **M7 PR** (`feature/m7-auth-hardening` → `develop`) is still open,
+   surface them to the user. M5 deliberately awaits her review (patient-
+   facing visuals are her checkpoint) plus physical-device validation (EAS
+   dev build; cron → push → tap → confirm → caregiver update incl. killed-app
+   cold start; father's device profile: font scale ≥1.3, TalkBack). M7 awaits
+   normal review. They merge cleanly in either order.
+2. Once M5 and M7 are merged, start **Milestone M6 — Hebrew + RTL +
+   language switcher** on branch `feature/m6-hebrew-rtl` off `develop`, per
+   the roadmap in PROJECT_HANDOFF.md. The user personally reviews all Hebrew
+   copy before merge.
 
-Deliver M5 the way every prior milestone was delivered: reviewable commits, a
-PR into `develop` with a completion report in the body, all gates green.
+Deliver every milestone the way prior ones were delivered: reviewable
+commits, a PR into `develop` with a completion report in the body, all gates
+green.
