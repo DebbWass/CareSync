@@ -3,7 +3,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(10);
+SELECT plan(11);
 
 -- ── handle_new_user ──────────────────────────────────────────────────────────
 
@@ -82,6 +82,16 @@ SELECT is(
     (SELECT snooze_count FROM public.medication_events
      WHERE id = '60000000-0000-4000-8000-000000000003'),
     1, 'status/snooze updates are allowed');
+
+-- notified_at is pipeline state, not identity — updatable (M4)
+UPDATE public.medication_events
+SET notified_at = NOW()
+WHERE id = '60000000-0000-4000-8000-000000000003';
+
+SELECT ok(
+    (SELECT notified_at IS NOT NULL FROM public.medication_events
+     WHERE id = '60000000-0000-4000-8000-000000000003'),
+    'notified_at update is allowed by the immutability trigger');
 
 -- ── alert dedup ──────────────────────────────────────────────────────────────
 

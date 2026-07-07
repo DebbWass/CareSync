@@ -1,13 +1,40 @@
 # CareSync — Notification Flow Architecture
 
-**Version:** 1.0  
-**Date:** 2026-05-09
+**Version:** 2.0 (production rebuild, milestone M4)
+**Date:** 2026-07-07
 
 ---
 
 ## Overview
 
 The notification system is the most critical component of CareSync. A missed notification means a missed medication. The system is designed with redundancy (server-push + realtime fallback), delivery guarantees, and proper PHI protection.
+
+## Reliability Guarantees (M4 hardening)
+
+| Guarantee | Mechanism |
+|---|---|
+| Reminders fire at the patient's wall-clock time, across DST | `times_of_day` is patient-local; the scheduler converts via `users.timezone` (luxon) and stores UTC instants |
+| No duplicate dose events | `UNIQUE(schedule_id, scheduled_time)` + upsert `ignoreDuplicates` |
+| No duplicate reminder pushes | `medication_events.notified_at` — set only after a successful hand-off to send-push; unnotified events retry next cron run |
+| No duplicate caregiver alerts on webhook double-fire | `UNIQUE(caregiver_id, event_id, alert_type)` + `ON CONFLICT DO NOTHING`; pushes go only to caregivers whose alert row was newly created |
+| Transient push-provider failures don't lose reminders | send-push retries 429/5xx/network with exponential backoff (3 attempts) |
+| Stale device tokens are pruned | Expo `DeviceNotRegistered` tickets delete the token row |
+| Localized notifications | Title/body chosen per recipient `users.language` (he/en), PHI-free in both |
+| App navigation on tap | Payload contract: `data.type` is `'reminder'` (patient, channel `medications`) or `'alert'` (caregiver, channel `alerts`) — matching `src/types/notifications.ts` |
+
+**Environment wiring** — the cron job and webhook trigger read two database
+GUCs at runtime (set once per environment; no secrets in migrations):
+
+```sql
+ALTER DATABASE postgres SET app.supabase_url     = '<project url>';
+ALTER DATABASE postgres SET app.service_role_key = '<service role key>';
+```
+
+Local dev: url = `http://host.docker.internal:54321`, key from
+`supabase status` (run the ALTER as `supabase_admin` over TCP). Until set,
+cron fails harmlessly and the webhook trigger is a silent no-op — patient
+confirm/snooze writes are never blocked. `npm run scheduler:run` triggers
+one deterministic scheduler run against the local stack.
 
 ---
 

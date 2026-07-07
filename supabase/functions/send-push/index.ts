@@ -21,9 +21,14 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { fetchWithRetry } from '../_shared/retry.ts';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 const DEFAULT_CHANNEL = 'medications';
+
+// Expo push tokens look like ExponentPushToken[xxxx]; anything else is a raw
+// device token we don't support sending to directly.
+const EXPO_TOKEN_RE = /^Expo(nent)?PushToken\[.+\]$/;
 
 interface SendPushRequest {
   user_id: string;
@@ -108,15 +113,19 @@ Deno.serve(async (req) => {
     );
   }
 
-  if (!tokens || tokens.length === 0) {
+  // Only Expo-format tokens can go to the Expo Push API; skip (and count) others
+  const validTokens = (tokens ?? []).filter((t) => EXPO_TOKEN_RE.test(t.token));
+  const skipped_invalid = (tokens?.length ?? 0) - validTokens.length;
+
+  if (validTokens.length === 0) {
     return new Response(
-      JSON.stringify({ sent: 0, failed: 0, removed_stale: 0 }),
+      JSON.stringify({ sent: 0, failed: 0, removed_stale: 0, skipped_invalid }),
       { headers: { 'Content-Type': 'application/json' } }
     );
   }
 
   // Build Expo push messages
-  const messages: ExpoPushMessage[] = tokens.map((t) => ({
+  const messages: ExpoPushMessage[] = validTokens.map((t) => ({
     to: t.token,
     title,
     body,
@@ -126,23 +135,29 @@ Deno.serve(async (req) => {
     priority: 'high',
   }));
 
-  // Send to Expo Push API (batch up to 100 per request)
+  // Send to Expo Push API (batch up to 100 per request), with bounded retry
+  // on 429/5xx/network failures — a transient provider hiccup must not lose
+  // a medication reminder.
   const BATCH_SIZE = 100;
   const tickets: ExpoTicket[] = [];
-  const tokenIds = tokens.map((t) => t.id);
+  const tokenIds = validTokens.map((t) => t.id);
 
   for (let i = 0; i < messages.length; i += BATCH_SIZE) {
     const batch = messages.slice(i, i + BATCH_SIZE);
     try {
-      const res = await fetch(EXPO_PUSH_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'Accept-Encoding': 'gzip, deflate',
+      const res = await fetchWithRetry(
+        EXPO_PUSH_URL,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Accept-Encoding': 'gzip, deflate',
+          },
+          body: JSON.stringify(batch),
         },
-        body: JSON.stringify(batch),
-      });
+        { attempts: 3, baseDelayMs: 500 }
+      );
 
       if (!res.ok) {
         console.error('[send-push] Expo API error:', res.status, await res.text());
@@ -151,10 +166,10 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const result = await res.json() as { data: ExpoTicket[] };
+      const result = (await res.json()) as { data: ExpoTicket[] };
       tickets.push(...(result.data ?? []));
     } catch (err) {
-      console.error('[send-push] Network error:', err);
+      console.error('[send-push] Expo API unreachable after retries:', err);
       batch.forEach(() => tickets.push({ status: 'error', message: 'Network error' }));
     }
   }
@@ -193,7 +208,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ sent, failed, removed_stale }),
+    JSON.stringify({ sent, failed, removed_stale, skipped_invalid }),
     { headers: { 'Content-Type': 'application/json' } }
   );
 });
