@@ -57,4 +57,5 @@ export const Colors = {
 } as const;
 
 export type ColorScheme = keyof typeof Colors;
-export type ThemeColors = typeof Colors.light;
+// Widened to string so any palette (light/dark/highContrast) satisfies it
+export type ThemeColors = { [K in keyof typeof Colors.light]: string };

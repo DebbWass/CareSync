@@ -7,67 +7,78 @@
  * Deep-link URL: caresync://reminder/<eventId>
  */
 import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import { ActivityIndicator } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ReminderCard } from '../../src/components/patient/ReminderCard';
+import { Text } from '../../src/components/ui/Text';
+import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { useConfirmEvent, useEventById, useSnoozeEvent } from '../../src/hooks/useMedicationEvent';
+import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors } from '../../src/constants/colors';
 import { FontSizes } from '../../src/constants/typography';
 
 export default function ReminderDeepLink() {
+  const { t } = useTranslation();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const router = useRouter();
+  const highContrast = useSettingsStore((s) => s.highContrastMode);
+  const theme = highContrast ? Colors.highContrast : Colors.light;
 
-  const { data: event, isLoading, error } = useEventById(eventId ?? null);
+  const { data: event, isLoading, error, refetch } = useEventById(eventId ?? null);
   const confirm = useConfirmEvent();
   const snooze = useSnoozeEvent();
 
+  const goHome = () => router.replace('/(patient)');
+
   const handleConfirm = () => {
     if (!event) return;
-    confirm.mutate(event.id, {
-      onSuccess: () => {
-        // Return to patient home after confirming
-        router.replace('/(patient)');
-      },
-    });
+    confirm.mutate(event.id, { onSuccess: goHome });
   };
 
   const handleSnooze = (_minutes: number) => {
     if (!event) return;
-    snooze.mutate(event.id, {
-      onSuccess: () => {
-        router.replace('/(patient)');
-      },
-    });
+    snooze.mutate(event.id, { onSuccess: goHome });
   };
 
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
-  // ── Error / not found ───────────────────────────────────────────────────────
-  if (error || !event) {
+  // ── Fetch failed (network, permission, …) ───────────────────────────────────
+  if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorTitle} accessibilityRole="alert">
-          Reminder not found
-        </Text>
-        <Text style={styles.errorBody}>
-          This reminder may have already been confirmed or expired.
-        </Text>
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        <ErrorBanner error={error} onRetry={refetch} />
+        <View style={styles.center}>
+          <GoHomeLink onPress={goHome} color={theme.primary} label={t('patient.reminder.goHome')} />
+        </View>
+      </View>
+    );
+  }
+
+  // ── Not found (expired or already cleaned up) ───────────────────────────────
+  if (!event) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
         <Text
-          style={styles.backLink}
-          onPress={() => router.replace('/(patient)')}
-          accessibilityRole="button"
-          accessibilityLabel="Go to home"
+          size={FontSizes.patient.heading}
+          weight="bold"
+          color={theme.onBackground}
+          align="center"
+          accessibilityRole="alert"
         >
-          ← Go home
+          {t('patient.reminder.notFoundTitle')}
         </Text>
+        <Text size={FontSizes.patient.body} color={theme.secondary} align="center">
+          {t('patient.reminder.notFoundBody')}
+        </Text>
+        <GoHomeLink onPress={goHome} color={theme.primary} label={t('patient.reminder.goHome')} />
       </View>
     );
   }
@@ -75,83 +86,80 @@ export default function ReminderDeepLink() {
   // ── Already taken ───────────────────────────────────────────────────────────
   if (event.status === 'taken') {
     return (
-      <View style={[styles.center, { backgroundColor: Colors.light.confirm }]}>
-        <Text style={styles.takenIcon}>✓</Text>
-        <Text style={styles.takenTitle}>Already confirmed!</Text>
-        <Text style={styles.takenBody}>This medication was recorded as taken.</Text>
-        <Text
-          style={styles.backLinkLight}
-          onPress={() => router.replace('/(patient)')}
-          accessibilityRole="button"
-          accessibilityLabel="Go to home"
-        >
-          ← Go home
+      <View style={[styles.center, { backgroundColor: theme.confirm }]}>
+        <Text size={72} weight="bold" color={theme.onConfirm}>
+          ✓
         </Text>
+        <Text
+          size={FontSizes.patient.heading}
+          weight="bold"
+          color={theme.onConfirm}
+          align="center"
+          accessibilityRole="header"
+        >
+          {t('patient.reminder.alreadyTakenTitle')}
+        </Text>
+        <Text size={FontSizes.patient.body} color={theme.onConfirm} align="center">
+          {t('patient.reminder.alreadyTakenBody')}
+        </Text>
+        <GoHomeLink onPress={goHome} color={theme.onConfirm} label={t('patient.reminder.goHome')} />
       </View>
     );
   }
 
   // ── Active reminder ─────────────────────────────────────────────────────────
   return (
-    <ReminderCard
-      event={event}
-      onConfirm={handleConfirm}
-      onSnooze={handleSnooze}
-      isConfirming={confirm.isPending}
-      isSnoozeing={snooze.isPending}
-    />
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      {/* A failed confirm/snooze rolls the card back — tell the patient why */}
+      <ErrorBanner error={confirm.error ?? snooze.error} />
+      <ReminderCard
+        event={event}
+        onConfirm={handleConfirm}
+        onSnooze={handleSnooze}
+        isConfirming={confirm.isPending}
+        isSnoozing={snooze.isPending}
+      />
+    </View>
+  );
+}
+
+// ── Shared "go home" link ─────────────────────────────────────────────────────
+
+interface GoHomeLinkProps {
+  onPress: () => void;
+  color: string;
+  label: string;
+}
+
+function GoHomeLink({ onPress, color, label }: GoHomeLinkProps) {
+  const { t } = useTranslation();
+  return (
+    <Text
+      size={FontSizes.patient.body}
+      weight="semibold"
+      color={color}
+      style={styles.backLink}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t('patient.reminder.goHomeLabel')}
+    >
+      {label}
+    </Text>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   center: {
     flex: 1,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
     gap: 12,
   },
-  errorTitle: {
-    fontSize: FontSizes.patient.heading,
-    fontWeight: '700',
-    color: Colors.light.onBackground,
-    textAlign: 'center',
-  },
-  errorBody: {
-    fontSize: FontSizes.patient.body,
-    color: Colors.light.secondary,
-    textAlign: 'center',
-    lineHeight: FontSizes.patient.body * 1.5,
-  },
   backLink: {
-    fontSize: FontSizes.patient.body,
-    color: Colors.light.primary,
-    fontWeight: '600',
-    marginTop: 16,
-    paddingVertical: 8,
-  },
-  takenIcon: {
-    fontSize: 72,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  takenTitle: {
-    fontSize: FontSizes.patient.heading,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  takenBody: {
-    fontSize: FontSizes.patient.body,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    textAlign: 'center',
-  },
-  backLinkLight: {
-    fontSize: FontSizes.patient.body,
-    color: '#FFFFFF',
-    fontWeight: '600',
     marginTop: 16,
     paddingVertical: 8,
   },
