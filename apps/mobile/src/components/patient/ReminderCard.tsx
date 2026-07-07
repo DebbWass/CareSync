@@ -15,7 +15,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
+import { formatTime } from '../../utils/dateFormat';
 import { Text } from '../ui/Text';
 import { Button } from '../ui/Button';
 import { Colors } from '../../constants/colors';
@@ -46,7 +46,7 @@ export function ReminderCard({
   const [selectedSnooze, setSelectedSnooze] = useState<number | null>(null);
 
   const medication = event.medications;
-  const scheduledTime = format(new Date(event.scheduled_time), 'h:mm a');
+  const scheduledTime = formatTime(event.scheduled_time);
   const snoozesRemaining = Math.max(0, SNOOZE_LIMIT - event.snooze_count);
   const canSnooze = snoozesRemaining > 0 && event.status !== 'taken';
   const busy = isConfirming || isSnoozing;

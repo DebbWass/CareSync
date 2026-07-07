@@ -1,14 +1,13 @@
+import i18n from '../i18n';
 import type { FrequencyType } from '../types';
 
-export const FREQUENCY_LABELS: Record<FrequencyType, string> = {
-  daily: 'Once daily',
-  twice_daily: 'Twice daily',
-  three_times_daily: 'Three times daily',
-  weekly: 'Weekly',
-  custom: 'Custom',
-};
+// Day labels come from i18n (schedules.days.0–6) so Hebrew is translation-only.
+// FREQUENCY_LABELS was removed in M6 — screens use t(`schedules.frequency.*`).
 
-export const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** Localized short day labels, Sunday-first (index matches days_of_week). */
+export function dayLabels(): string[] {
+  return [0, 1, 2, 3, 4, 5, 6].map((i) => i18n.t(`schedules.days.${i}`));
+}
 
 /** Number of time slots required for a given frequency. */
 export function timeSlotsForFrequency(freq: FrequencyType): number {
@@ -40,11 +39,17 @@ export function defaultTimesForFrequency(freq: FrequencyType): string[] {
   }
 }
 
-/** Human-readable summary of times, e.g. "8:00 AM, 8:00 PM" */
+/**
+ * Human-readable summary of times.
+ * English: 12-hour with AM/PM ("8:00 AM, 8:00 PM"); Hebrew: 24-hour
+ * ("8:00, 20:00") — Israel uses the 24-hour clock.
+ */
 export function formatTimes(times: string[]): string {
+  const use24h = i18n.language === 'he';
   return times
     .map((t) => {
       const [h, m] = t.split(':').map(Number);
+      if (use24h) return `${h}:${String(m).padStart(2, '0')}`;
       const period = h >= 12 ? 'PM' : 'AM';
       const hour = h % 12 === 0 ? 12 : h % 12;
       return `${hour}:${String(m).padStart(2, '0')} ${period}`;
@@ -52,10 +57,11 @@ export function formatTimes(times: string[]): string {
     .join(', ');
 }
 
-/** Human-readable days-of-week summary, e.g. "Mon, Wed, Fri" */
+/** Human-readable days-of-week summary, e.g. "Mon, Wed, Fri" — localized. */
 export function formatDays(days: number[] | undefined | null): string {
-  if (!days || days.length === 0) return 'Every day';
-  return days.map((d) => DAY_LABELS[d]).join(', ');
+  if (!days || days.length === 0) return i18n.t('schedules.everyDay');
+  const labels = dayLabels();
+  return days.map((d) => labels[d]).join(', ');
 }
 
 /** Validate that a time string is in HH:MM 24-hour format. */
