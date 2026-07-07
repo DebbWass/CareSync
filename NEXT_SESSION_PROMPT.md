@@ -65,15 +65,17 @@ milestones M0–M4 are complete and merged.
 
 ## What to do first
 
-1. If the **M7 PR #16** (`feature/m7-auth-hardening` → `develop`) is still
-   open, surface it to the user (M5 is already merged). Also still pending
-   on the user: M5 physical-device validation (EAS dev build including M7;
-   cron → push → tap → confirm → caregiver update incl. killed-app cold
-   start; father's device profile: font scale ≥1.3, TalkBack).
-2. Once M7 is merged, start **Milestone M6 — Hebrew + RTL + language
-   switcher** on branch `feature/m6-hebrew-rtl` off `develop`, per the
-   roadmap in PROJECT_HANDOFF.md. The user personally reviews all Hebrew
-   copy before merge.
+1. If PR #16 (M7) or the M6 PR (`feature/m6-hebrew-rtl`, stacked on the M7
+   branch) is still open, surface them to the user: merge order is #16
+   first, then M6 — and she must review every Hebrew string in
+   `src/i18n/locales/he.json` before the M6 merge. Also still pending on
+   the user: M5 physical-device validation (EAS dev build including M7's
+   AuthGuard fix; cron → push → tap → confirm → caregiver update incl.
+   killed-app cold start; father's device profile: font scale ≥1.3,
+   TalkBack; Hebrew/RTL spot-check via Settings).
+2. Once M5–M7 are merged and validated, the next code milestone is
+   **M8+M9 — urgent patient↔caregiver messaging** per the roadmap in
+   PROJECT_HANDOFF.md (verify postgres_changes delivery WITH RLS early).
 
 Deliver every milestone the way prior ones were delivered: reviewable
 commits, a PR into `develop` with a completion report in the body, all gates
