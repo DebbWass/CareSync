@@ -9,11 +9,15 @@ import {
 } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { Link } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { signUp } from '../../src/services/supabase/auth';
+import { normalizeSupabaseError } from '../../src/services/supabase/errors';
 import { Colors } from '../../src/constants/colors';
+import { MIN_PASSWORD_LENGTH } from '../../src/constants/config';
 import type { UserRole } from '../../src/types';
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,11 +28,11 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password) {
-      setError('Please fill in all fields.');
+      setError(t('auth.login.fillAllFields'));
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(t('auth.register.passwordTooShort', { min: MIN_PASSWORD_LENGTH }));
       return;
     }
     setError('');
@@ -37,8 +41,7 @@ export default function RegisterScreen() {
       await signUp(email.trim().toLowerCase(), password, name.trim(), role);
       // Navigation handled by root layout's auth guard after session is set
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      setError(msg);
+      setError(t(normalizeSupabaseError(err).messageKey));
     } finally {
       setLoading(false);
     }
@@ -57,26 +60,26 @@ export default function RegisterScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.appName} accessibilityRole="header">
-            CareSync
+            {t('common.appName')}
           </Text>
-          <Text style={styles.subtitle}>Create your account</Text>
+          <Text style={styles.subtitle}>{t('auth.register.subtitle')}</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
           <TextInput
-            label="Full Name"
+            label={t('auth.register.nameLabel')}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
             autoComplete="name"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Full name"
+            accessibilityLabel={t('auth.register.nameA11y')}
           />
 
           <TextInput
-            label="Email"
+            label={t('auth.login.emailLabel')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -84,39 +87,41 @@ export default function RegisterScreen() {
             autoComplete="email"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Email address"
+            accessibilityLabel={t('auth.login.emailA11y')}
           />
 
           <TextInput
-            label="Password"
+            label={t('auth.login.passwordLabel')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordVisible}
             autoComplete="new-password"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Password"
+            accessibilityLabel={t('auth.login.passwordLabel')}
             right={
               <TextInput.Icon
                 icon={passwordVisible ? 'eye-off' : 'eye'}
                 onPress={() => setPasswordVisible((v) => !v)}
-                accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+                accessibilityLabel={
+                  passwordVisible ? t('auth.login.hidePassword') : t('auth.login.showPassword')
+                }
               />
             }
           />
 
           {/* Role selector */}
-          <Text style={styles.roleLabel}>I am a:</Text>
+          <Text style={styles.roleLabel}>{t('auth.register.roleLabel')}</Text>
           <View style={styles.roleRow} accessibilityRole="radiogroup">
             <RoleOption
-              label="Caregiver"
-              description="I manage medications for a patient"
+              label={t('auth.register.roleCaregiver')}
+              description={t('auth.register.roleCaregiverDesc')}
               selected={role === 'caregiver'}
               onPress={() => setRole('caregiver')}
             />
             <RoleOption
-              label="Patient"
-              description="I receive medication reminders"
+              label={t('auth.register.rolePatient')}
+              description={t('auth.register.rolePatientDesc')}
               selected={role === 'patient'}
               onPress={() => setRole('patient')}
             />
@@ -135,16 +140,16 @@ export default function RegisterScreen() {
             disabled={loading}
             style={styles.button}
             contentStyle={styles.buttonContent}
-            accessibilityLabel="Create CareSync account"
-            accessibilityHint="Double tap to register with the information above"
+            accessibilityLabel={t('auth.register.createAccountA11y')}
+            accessibilityHint={t('auth.register.createAccountHint')}
           >
-            Create Account
+            {t('auth.register.createAccount')}
           </Button>
 
           <View style={styles.linkRow}>
-            <Text style={styles.linkText}>Already have an account? </Text>
+            <Text style={styles.linkText}>{t('auth.register.haveAccount')}</Text>
             <Link href="/(auth)/login">
-              <Text style={styles.link}>Sign In</Text>
+              <Text style={styles.link}>{t('auth.register.signInLink')}</Text>
             </Link>
           </View>
         </View>

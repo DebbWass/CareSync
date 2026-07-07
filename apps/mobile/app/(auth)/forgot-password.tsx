@@ -1,30 +1,35 @@
+/**
+ * Forgot-password screen — sends a recovery email with a deep link back to
+ * /reset-password. The success copy deliberately does not confirm whether an
+ * account exists (anti-enumeration, mirroring GoTrue's behavior).
+ */
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { signIn } from '../../src/services/supabase/auth';
+import { requestPasswordReset } from '../../src/services/supabase/auth';
 import { normalizeSupabaseError } from '../../src/services/supabase/errors';
 import { Colors } from '../../src/constants/colors';
 
-export default function LoginScreen() {
+export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      setError(t('auth.login.fillAllFields'));
+  const handleSend = async () => {
+    if (!email.trim()) {
+      setError(t('auth.forgot.enterEmail'));
       return;
     }
     setError('');
     setLoading(true);
     try {
-      await signIn(email.trim().toLowerCase(), password);
-      // Navigation is handled by the root layout's auth guard
+      await requestPasswordReset(email.trim().toLowerCase());
+      setSent(true);
     } catch (err: unknown) {
       setError(t(normalizeSupabaseError(err).messageKey));
     } finally {
@@ -32,6 +37,28 @@ export default function LoginScreen() {
     }
   };
 
+  // ── Sent confirmation ───────────────────────────────────────────────────────
+  if (sent) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.sentIcon}>✉</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('auth.forgot.sentTitle')}
+        </Text>
+        <Text style={styles.body}>{t('auth.forgot.sentBody', { email: email.trim() })}</Text>
+        <Text
+          style={styles.link}
+          onPress={() => router.replace('/(auth)/login')}
+          accessibilityRole="button"
+          accessibilityLabel={t('auth.forgot.backToLoginA11y')}
+        >
+          {t('auth.forgot.backToLogin')}
+        </Text>
+      </View>
+    );
+  }
+
+  // ── Email form ──────────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -42,15 +69,13 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         bounces={false}
       >
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.appName} accessibilityRole="header">
-            {t('common.appName')}
+          <Text style={styles.title} accessibilityRole="header">
+            {t('auth.forgot.title')}
           </Text>
-          <Text style={styles.tagline}>{t('auth.login.tagline')}</Text>
+          <Text style={styles.body}>{t('auth.forgot.subtitle')}</Text>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
           <TextInput
             label={t('auth.login.emailLabel')}
@@ -64,26 +89,6 @@ export default function LoginScreen() {
             accessibilityLabel={t('auth.login.emailA11y')}
           />
 
-          <TextInput
-            label={t('auth.login.passwordLabel')}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!passwordVisible}
-            autoComplete="current-password"
-            mode="outlined"
-            style={styles.input}
-            accessibilityLabel={t('auth.login.passwordLabel')}
-            right={
-              <TextInput.Icon
-                icon={passwordVisible ? 'eye-off' : 'eye'}
-                onPress={() => setPasswordVisible((v) => !v)}
-                accessibilityLabel={
-                  passwordVisible ? t('auth.login.hidePassword') : t('auth.login.showPassword')
-                }
-              />
-            }
-          />
-
           {error ? (
             <Text style={styles.errorText} accessibilityRole="alert">
               {error}
@@ -92,27 +97,24 @@ export default function LoginScreen() {
 
           <Button
             mode="contained"
-            onPress={handleLogin}
+            onPress={handleSend}
             loading={loading}
             disabled={loading}
             style={styles.button}
             contentStyle={styles.buttonContent}
-            accessibilityLabel={t('auth.login.signInA11y')}
-            accessibilityHint={t('auth.login.signInHint')}
+            accessibilityLabel={t('auth.forgot.sendA11y')}
           >
-            {t('auth.login.signIn')}
+            {t('auth.forgot.sendButton')}
           </Button>
 
-          <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
-            <Text style={styles.link}>{t('auth.login.forgotLink')}</Text>
-          </Link>
-
-          <View style={styles.linkRow}>
-            <Text style={styles.linkText}>{t('auth.login.noAccount')}</Text>
-            <Link href="/(auth)/register">
-              <Text style={styles.link}>{t('auth.login.registerLink')}</Text>
-            </Link>
-          </View>
+          <Text
+            style={styles.link}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t('auth.forgot.backToLoginA11y')}
+          >
+            {t('auth.forgot.backToLogin')}
+          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -130,21 +132,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 48,
   },
+  center: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    gap: 12,
+  },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
+    gap: 8,
   },
-  appName: {
-    fontSize: 40,
-    fontWeight: '700',
+  sentIcon: {
+    fontSize: 56,
     color: Colors.light.primary,
-    letterSpacing: 1,
   },
-  tagline: {
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: Colors.light.onBackground,
+    textAlign: 'center',
+  },
+  body: {
     fontSize: 15,
     color: Colors.light.secondary,
     textAlign: 'center',
-    marginTop: 8,
     lineHeight: 22,
   },
   form: {
@@ -156,7 +170,6 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.light.danger,
     fontSize: 14,
-    marginTop: 2,
   },
   button: {
     marginTop: 8,
@@ -165,23 +178,12 @@ const styles = StyleSheet.create({
   buttonContent: {
     height: 52,
   },
-  forgotLink: {
-    alignSelf: 'center',
-    marginTop: 12,
-    paddingVertical: 4,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
-  },
-  linkText: {
-    color: Colors.light.secondary,
-    fontSize: 14,
-  },
   link: {
     color: Colors.light.primary,
     fontWeight: '600',
     fontSize: 14,
+    textAlign: 'center',
+    marginTop: 16,
+    paddingVertical: 8,
   },
 });

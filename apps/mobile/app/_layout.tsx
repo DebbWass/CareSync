@@ -57,8 +57,20 @@ function AuthGuard({ isAuthReady }: { isAuthReady: boolean }) {
   const inPatientGroup = segments[0] === '(patient)';
   const inCaregiverGroup = segments[0] === '(caregiver)';
 
+  // The password-recovery deep link manages its own session (tokens arrive in
+  // the URL); redirecting it — with or without a session — would break the flow.
+  if (segments[0] === 'reset-password') {
+    return null;
+  }
+
   if (!session) {
     return inAuthGroup ? null : <Redirect href="/(auth)/login" />;
+  }
+
+  // Push-notification deep link — valid for a signed-in user of either role;
+  // without this exception the role redirect below would bounce it to home.
+  if (segments[0] === 'reminder') {
+    return null;
   }
 
   if (role === 'patient' && !inPatientGroup) {
@@ -114,6 +126,7 @@ export default function RootLayout() {
               animation: 'fade',
             }}
           />
+          <Stack.Screen name="reset-password" />
         </Stack>
       </PaperProvider>
     </QueryClientProvider>
