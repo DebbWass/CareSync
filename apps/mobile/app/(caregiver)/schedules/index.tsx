@@ -7,7 +7,8 @@ import { ActivityIndicator, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSchedulesForPatient } from '../../../src/hooks/useSchedules';
-import { DAY_LABELS, formatDays, formatTimes } from '../../../src/utils/scheduleUtils';
+import { dayLabels, formatDays, formatTimes } from '../../../src/utils/scheduleUtils';
+import { forwardChevron } from '../../../src/utils/rtl';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
@@ -155,7 +156,7 @@ function ScheduleRow({
         <Text style={styles.timesText}>🕐 {timesLabel}</Text>
         {schedule.days_of_week && schedule.days_of_week.length > 0 ? (
           <View style={styles.daysRow}>
-            {DAY_LABELS.map((label, i) => (
+            {dayLabels().map((label, i) => (
               <View
                 key={i}
                 style={[styles.dayChip, schedule.days_of_week!.includes(i) && styles.dayChipActive]}
@@ -178,7 +179,7 @@ function ScheduleRow({
             : t('schedules.dateOngoing', { start: schedule.start_date })}
         </Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={styles.chevron}>{forwardChevron()}</Text>
     </TouchableOpacity>
   );
 }
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
     color: Colors.light.secondary,
     marginTop: 2,
   },
-  chevron: { fontSize: 24, color: Colors.light.secondary, marginLeft: 8 },
+  chevron: { fontSize: 24, color: Colors.light.secondary, marginStart: 8 },
   emptyTitle: {
     fontSize: FontSizes.caregiver.headline,
     fontWeight: FontWeights.bold,

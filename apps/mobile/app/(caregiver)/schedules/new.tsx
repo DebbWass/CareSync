@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useMedications } from '../../../src/hooks/useMedications';
 import { useCreateSchedule } from '../../../src/hooks/useSchedules';
 import {
-  DAY_LABELS,
+  dayLabels,
   defaultTimesForFrequency,
   isValidDate,
   isValidTime,
@@ -257,7 +257,7 @@ export default function NewScheduleScreen() {
             <>
               <Text style={styles.fieldLabel}>{t('schedules.form.daysLabel')}</Text>
               <View style={styles.daysRow}>
-                {DAY_LABELS.map((label, i) => (
+                {dayLabels().map((label, i) => (
                   <TouchableOpacity
                     key={i}
                     style={[styles.dayChip, selectedDays.includes(i) && styles.dayChipActive]}
