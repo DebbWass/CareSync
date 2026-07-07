@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
 **Snapshot date:** 2026-07-07 (second session)
-**Branch state:** `develop` = M0–M4 merged; promotion PR #13 (`develop` → `main`) MERGED; M5 code on `feature/m5-patient-reminder` (PR open, awaiting user review + device validation)
-**Overall completion: ~50%** of the production-rebuild scope (M5 code complete; its device-validation tail remains)
+**Branch state:** `develop` = M0–M5 merged (M5 = PR #15); M7 code on `feature/m7-auth-hardening` (PR #16 open, awaiting user review)
+**Overall completion: ~55%** of the production-rebuild scope (M5 merged, M7 code complete; M5 device-validation tail remains)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -174,8 +174,8 @@ the milestone list below is the durable copy.
       25 Deno tests, `npm run scheduler:run`. **Verified live** on the local
       stack including a webhook-replay dedup proof. Complete.
 
-- [~] **M5 — Patient reminder experience** (feature/m5-patient-reminder — CODE
-      COMPLETE, PR open). Fixed the `snoozeEvent` read-then-increment race with
+- [x] **M5 — Patient reminder experience** (PR #15, MERGED — device-validation
+      tail remains, see Remaining). Fixed the `snoozeEvent` read-then-increment race with
       a `snooze_event(uuid)` RPC (SECURITY INVOKER single-UPDATE increment,
       status-guarded, pgTAP-covered; migration 20260707000002). Optimistic
       confirm/snooze with rollback in `useMedicationEvent` (hook tests cover
@@ -185,22 +185,41 @@ the milestone list below is the durable copy.
       screen, localized tab labels. Button + ErrorBanner made high-contrast
       aware (were hardcoded to the light palette). Maestro: new
       `05_patient_confirm_medication.yaml`; fixed flow 02 missing tab-nav step.
-      **REMAINING (user actions):** review/merge the PR; EAS dev build on a
+      **REMAINING (user actions, after M7 merges):** EAS dev build on a
       physical Android device; validate cron → push → tap → confirm → caregiver
       update incl. killed-app cold start; father's device-profile checkpoint
-      (font scale ≥1.3, TalkBack).
+      (font scale ≥1.3, TalkBack). Use a build that includes M7 — its
+      AuthGuard fix is required for the cold-start push→tap path.
 
-**Test totals on develop+M5 branch:** 98 Jest · 25 Deno · 55 pgTAP · 8 CI jobs.
+- [~] **M7 — Auth hardening** (feature/m7-auth-hardening — CODE COMPLETE,
+      PR #16 open; develop, including M5, already merged in). Minimum password 8
+      (config.toml + `MIN_PASSWORD_LENGTH` client validation); forgot/reset
+      password flow: `(auth)/forgot-password` + standalone `app/reset-password`
+      deep-link target (`caresync://reset-password`, implicit-flow fragment
+      tokens parsed by `parseRecoveryUrl` — RN URLSearchParams is unreliable);
+      GoTrue error codes mapped into the AppError contract
+      (invalidCredentials/emailInUse/weakPassword/samePassword/rateLimit/
+      expiredLink) so auth screens stop showing raw API strings; full i18n
+      sweep of login/register (`auth.*` namespace); `getProfileWithRetry`
+      fixes the fresh-signup bounce; AuthGuard now allowlists standalone
+      routes — this also fixed a latent bug where the guard bounced the
+      `/reminder/[eventId]` push deep link back to home. +11 Jest tests.
+      **REMAINING (user actions):** review/merge the PR; reset-email delivery
+      on the hosted stack uses Supabase's built-in SMTP (fine for dev; custom
+      SMTP is an M11/production item).
+
+**Test totals on the M7 branch (= develop/M5 + M7):** 120 Jest · 25 Deno ·
+55 pgTAP · 8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
 
 ### High priority — required for production
 
-- [ ] **M5 — validation tail** (code complete, see Completed section). What
-      remains is entirely user-in-the-loop: merge the open M5 PR after review,
-      EAS dev build on a physical Android device, validate
+- [ ] **M5 — validation tail** (M5 merged; see Completed section). Entirely
+      user-in-the-loop: EAS dev build on a physical Android device, validate
       push→tap→confirm end-to-end including killed-app cold start, and the
-      father's device-profile checkpoint (font scale, TalkBack).
+      father's device-profile checkpoint (font scale, TalkBack). Build must
+      include M7 (AuthGuard deep-link fix).
 - [ ] **M6 — Hebrew + RTL + language switcher.** Full `he.json` (elderly-simple
       Hebrew — user reviews copy); switcher writes settingsStore + `users
       .language`; `I18nManager.forceRTL` + `Updates.reloadAsync` flow; RTL
@@ -208,9 +227,9 @@ the milestone list below is the durable copy.
       dates + `DAY_LABELS` (currently English in `src/utils/scheduleUtils.ts`);
       en/he key-parity test. Files: every screen (styles only), i18n/, layouts.
       Depends on M5 (so patient screens exist to translate). Complexity: **High**.
-- [ ] **M7 — Auth hardening.** Min password 8 (currently 6 in
-      `supabase/config.toml`), forgot/reset-password screens + deep link,
-      localized errors. Complexity: **Medium**.
+- [ ] **M7 — merge tail** (code complete, see Completed section): review and
+      merge the open M7 PR; spot-check the reset flow end-to-end on the local
+      stack (Inbucket at http://127.0.0.1:54324 catches the recovery email).
 - [ ] **M8+M9 — Urgent patient↔caregiver messaging.** New `messages` table
       (client_id idempotency, monotonic sent→delivered→read trigger, RLS,
       realtime publication, INSERT webhook → new message-push Edge Fn);
@@ -261,23 +280,25 @@ the milestone list below is the durable copy.
 
 ## Known Issues
 
-1. Fresh-signup bounce possibility if profile trigger lags (see Medium item).
-2. `docs/` other than db-schema.md and notification-flow.md are partly stale.
-3. GitHub Actions once silently dropped a workflow run for a pushed commit
+1. `docs/` other than db-schema.md and notification-flow.md are partly stale.
+2. GitHub Actions once silently dropped a workflow run for a pushed commit
    (PR #9 fix commit) — if CI seems missing, check `gh run list` before
    assuming success.
-4. Jest full-suite runs on Windows sometimes print "worker process has failed
+3. Jest full-suite runs on Windows sometimes print "worker process has failed
    to exit gracefully"; `--detectOpenHandles` finds nothing, all tests pass,
    and subsets run clean — treated as a flaky local artifact; watch CI.
-5. Snoozing does not schedule a re-push server-side: the chosen snooze
+4. Snoozing does not schedule a re-push server-side: the chosen snooze
    minutes are UI-only today (the scheduler pushes once per dose via
    `notified_at`). The reminder card stays visible until taken/missed, which
    is honest UX, but a true "remind me again in N minutes" needs scheduler
    support — candidate for M11 scope discussion.
 
 Resolved this session: the `snoozeEvent` read-then-increment race (atomic
-RPC), patient screens bypassing a11y/i18n/ErrorBanner patterns, and the
-stale Maestro flow 02 (missing Medications-tab navigation step).
+RPC), patient screens bypassing a11y/i18n/ErrorBanner patterns, the stale
+Maestro flow 02 (missing Medications-tab navigation step), the fresh-signup
+profile bounce (retry in M7), the AuthGuard bouncing standalone deep-link
+routes (`/reminder/[eventId]`, `/reset-password`), and raw GoTrue error
+strings on the auth screens.
 
 ## Technical Debt
 
@@ -347,24 +368,25 @@ carry rationale comments.
 
 ## Current Development Status
 
-This session: merged promotion PR #13 (M0–M4 → `main`), then built all of
-M5's code scope on `feature/m5-patient-reminder` and opened its PR into
-`develop` (see the PR body for the completion report). `develop` itself is
-clean. The M5 PR intentionally awaits the user: patient-facing visuals are
-her approval checkpoint, and the milestone's definition of done includes
-physical-device validation only she can run.
+This session: merged promotion PR #13 (M0–M4 → `main`); built and delivered
+M5 (PR #15, since MERGED into develop by the user); built M7 on
+`feature/m7-auth-hardening` (PR #16 open — pulled ahead of M6 because M6
+depended on M5 merging, while M7 was independent). The doc conflict between
+the two PRs was resolved by merging develop into the M7 branch (the M7 side
+of the handoff docs is the superset). PR #16 awaits user review.
 
 ## Next Recommended Tasks (in order)
 
-1. **User: review + merge the M5 PR** (all 8 CI jobs must be green first).
+1. **User: review + merge PR #16 (M7)** (all 8 CI jobs must be green first).
 2. **User: EAS dev build** on a physical Android device; validate cron →
    push → tap → fullscreen reminder → confirm → caregiver dashboard update,
    including the killed-app cold-start path (`npm run scheduler:run` against
-   the local stack, or the deployed cron).
+   the local stack, or the deployed cron). The build must include M7 — its
+   AuthGuard fix is required for the cold-start push→tap path.
 3. User checkpoint: demo with father's device profile (font scale ≥1.3,
    TalkBack spot-check).
-4. Then M6 (Hebrew/RTL) — see roadmap above. Its prerequisite (M5 patient
-   screens fully on `t()`) is now satisfied.
+4. Then M6 (Hebrew/RTL) — see roadmap above. Its prerequisites (M5+M7
+   merged, all user-facing strings on `t()`) will then be satisfied.
 
 ## Risks — do not break these
 

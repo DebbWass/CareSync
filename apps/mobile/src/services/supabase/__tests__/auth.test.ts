@@ -14,6 +14,9 @@
 var mockSignInWithPassword: jest.Mock;
 var mockSignUp: jest.Mock;
 var mockSignOut: jest.Mock;
+var mockResetPasswordForEmail: jest.Mock;
+var mockUpdateUser: jest.Mock;
+var mockSetSession: jest.Mock;
 var mockFrom: jest.Mock;
 /* eslint-enable no-var */
 
@@ -22,6 +25,9 @@ jest.mock('../../../lib/supabase', () => {
   mockSignInWithPassword = jest.fn();
   mockSignUp = jest.fn();
   mockSignOut = jest.fn();
+  mockResetPasswordForEmail = jest.fn();
+  mockUpdateUser = jest.fn();
+  mockSetSession = jest.fn();
   mockFrom = jest.fn();
 
   return {
@@ -30,13 +36,27 @@ jest.mock('../../../lib/supabase', () => {
         signInWithPassword: (...args: unknown[]) => mockSignInWithPassword(...args),
         signUp: (...args: unknown[]) => mockSignUp(...args),
         signOut: (...args: unknown[]) => mockSignOut(...args),
+        resetPasswordForEmail: (...args: unknown[]) => mockResetPasswordForEmail(...args),
+        updateUser: (...args: unknown[]) => mockUpdateUser(...args),
+        setSession: (...args: unknown[]) => mockSetSession(...args),
       },
       from: (...args: unknown[]) => mockFrom(...args),
     },
   };
 });
 
-import { signIn, signOut, signUp, getProfile } from '../auth';
+import {
+  signIn,
+  signOut,
+  signUp,
+  getProfile,
+  getProfileWithRetry,
+  requestPasswordReset,
+  updatePassword,
+  parseRecoveryUrl,
+  restoreSessionFromRecoveryUrl,
+  RESET_PASSWORD_REDIRECT,
+} from '../auth';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -189,5 +209,161 @@ describe('getProfile', () => {
     await getProfile('abc-123');
     expect(mockFrom).toHaveBeenCalledWith('users');
     expect(chain.eq).toHaveBeenCalledWith('id', 'abc-123');
+  });
+});
+
+// ── getProfileWithRetry ───────────────────────────────────────────────────────
+
+describe('getProfileWithRetry', () => {
+  beforeEach(() => {
+    mockFrom.mockReset();
+  });
+
+  it('retries until the profile appears (fresh-signup trigger lag)', async () => {
+    const fakeProfile = { id: 'u1', email: 'a@b.c', name: 'A', role: 'patient' };
+    const single = jest
+      .fn()
+      .mockResolvedValueOnce({ data: null, error: { code: 'PGRST116', message: '' } })
+      .mockResolvedValueOnce({ data: fakeProfile, error: null });
+    mockFrom.mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single,
+    });
+
+    const result = await getProfileWithRetry('u1', 3, 0);
+    expect(result).toEqual(fakeProfile);
+    expect(single).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after the configured attempts', async () => {
+    const single = jest
+      .fn()
+      .mockResolvedValue({ data: null, error: { code: 'PGRST116', message: '' } });
+    mockFrom.mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single,
+    });
+
+    const result = await getProfileWithRetry('u1', 3, 0);
+    expect(result).toBeNull();
+    expect(single).toHaveBeenCalledTimes(3);
+  });
+});
+
+// ── password reset ────────────────────────────────────────────────────────────
+
+describe('requestPasswordReset', () => {
+  beforeEach(() => {
+    mockResetPasswordForEmail.mockReset();
+  });
+
+  it('sends the recovery email with the app deep-link redirect', async () => {
+    mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+
+    await requestPasswordReset('user@example.com');
+
+    expect(mockResetPasswordForEmail).toHaveBeenCalledWith('user@example.com', {
+      redirectTo: RESET_PASSWORD_REDIRECT,
+    });
+  });
+
+  it('normalizes rate-limit errors', async () => {
+    mockResetPasswordForEmail.mockResolvedValue({
+      data: null,
+      error: { code: 'over_email_send_rate_limit', message: 'too many' },
+    });
+
+    await expect(requestPasswordReset('user@example.com')).rejects.toMatchObject({
+      name: 'AppError',
+      code: 'rateLimit',
+      messageKey: 'errors.rateLimit',
+    });
+  });
+});
+
+describe('updatePassword', () => {
+  beforeEach(() => {
+    mockUpdateUser.mockReset();
+  });
+
+  it('updates the password on the current session', async () => {
+    mockUpdateUser.mockResolvedValue({ data: {}, error: null });
+
+    await updatePassword('new-password-123');
+    expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'new-password-123' });
+  });
+
+  it('maps same_password to a specific message', async () => {
+    mockUpdateUser.mockResolvedValue({
+      data: null,
+      error: { code: 'same_password', message: 'same' },
+    });
+
+    await expect(updatePassword('unchanged')).rejects.toMatchObject({
+      code: 'samePassword',
+      messageKey: 'errors.samePassword',
+    });
+  });
+});
+
+// ── recovery deep-link parsing ────────────────────────────────────────────────
+
+describe('parseRecoveryUrl', () => {
+  it('extracts tokens from the URL fragment', () => {
+    expect(
+      parseRecoveryUrl(
+        'caresync://reset-password#access_token=aaa.bbb.ccc&refresh_token=rrr&type=recovery'
+      )
+    ).toEqual({ kind: 'tokens', accessToken: 'aaa.bbb.ccc', refreshToken: 'rrr' });
+  });
+
+  it('surfaces GoTrue error codes (expired link)', () => {
+    expect(
+      parseRecoveryUrl(
+        'caresync://reset-password#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid'
+      )
+    ).toEqual({ kind: 'error', errorCode: 'otp_expired' });
+  });
+
+  it('returns none for a URL without a fragment', () => {
+    expect(parseRecoveryUrl('caresync://reset-password')).toEqual({ kind: 'none' });
+  });
+
+  it('returns none for a fragment missing either token', () => {
+    expect(parseRecoveryUrl('caresync://reset-password#access_token=only')).toEqual({
+      kind: 'none',
+    });
+  });
+});
+
+describe('restoreSessionFromRecoveryUrl', () => {
+  beforeEach(() => {
+    mockSetSession.mockReset();
+  });
+
+  it('installs the session from a token URL', async () => {
+    mockSetSession.mockResolvedValue({ data: {}, error: null });
+
+    const restored = await restoreSessionFromRecoveryUrl(
+      'caresync://reset-password#access_token=aaa&refresh_token=rrr&type=recovery'
+    );
+
+    expect(restored).toBe(true);
+    expect(mockSetSession).toHaveBeenCalledWith({ access_token: 'aaa', refresh_token: 'rrr' });
+  });
+
+  it('returns false when the URL carries nothing usable', async () => {
+    await expect(restoreSessionFromRecoveryUrl('caresync://reset-password')).resolves.toBe(false);
+    expect(mockSetSession).not.toHaveBeenCalled();
+  });
+
+  it('throws expiredLink for a stale recovery link', async () => {
+    await expect(
+      restoreSessionFromRecoveryUrl(
+        'caresync://reset-password#error=access_denied&error_code=otp_expired'
+      )
+    ).rejects.toMatchObject({ code: 'expiredLink', messageKey: 'errors.expiredLink' });
   });
 });

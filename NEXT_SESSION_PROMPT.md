@@ -65,14 +65,14 @@ milestones M0–M4 are complete and merged.
 
 ## What to do first
 
-1. If the **M5 PR** (`feature/m5-patient-reminder` → `develop`) is still
-   open, surface it to the user: it deliberately awaits her review (patient-
-   facing visuals are her checkpoint) plus physical-device validation (EAS
-   dev build; cron → push → tap → confirm → caregiver update incl. killed-app
-   cold start; father's device profile: font scale ≥1.3, TalkBack).
-2. Once M5 is merged and validated, start **Milestone M6 — Hebrew + RTL +
-   language switcher** on branch `feature/m6-hebrew-rtl` off `develop`, per
-   the roadmap in PROJECT_HANDOFF.md. The user personally reviews all Hebrew
+1. If the **M7 PR #16** (`feature/m7-auth-hardening` → `develop`) is still
+   open, surface it to the user (M5 is already merged). Also still pending
+   on the user: M5 physical-device validation (EAS dev build including M7;
+   cron → push → tap → confirm → caregiver update incl. killed-app cold
+   start; father's device profile: font scale ≥1.3, TalkBack).
+2. Once M7 is merged, start **Milestone M6 — Hebrew + RTL + language
+   switcher** on branch `feature/m6-hebrew-rtl` off `develop`, per the
+   roadmap in PROJECT_HANDOFF.md. The user personally reviews all Hebrew
    copy before merge.
 
 Deliver every milestone the way prior ones were delivered: reviewable

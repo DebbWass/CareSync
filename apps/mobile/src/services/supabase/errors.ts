@@ -10,7 +10,21 @@
  * render a localized, non-technical message via <ErrorBanner/>.
  */
 
-export type AppErrorCode = 'network' | 'auth' | 'permission' | 'notFound' | 'conflict' | 'unknown';
+export type AppErrorCode =
+  | 'network'
+  | 'auth'
+  | 'permission'
+  | 'notFound'
+  | 'conflict'
+  | 'unknown'
+  // Auth-flow specific (M7) — mapped from GoTrue error codes so login/register/
+  // reset screens can show a human message instead of a raw API string
+  | 'invalidCredentials'
+  | 'emailInUse'
+  | 'weakPassword'
+  | 'samePassword'
+  | 'rateLimit'
+  | 'expiredLink';
 
 export class AppError extends Error {
   readonly code: AppErrorCode;
@@ -47,6 +61,23 @@ function errorStatus(err: unknown): number | undefined {
 }
 
 /**
+ * GoTrue error codes → AppError codes. GoTrue reports validation problems
+ * (wrong password, duplicate email, weak password) with specific `code`
+ * values; without this map they'd all collapse into the generic 'auth'
+ * ("session expired") message, which is wrong and confusing on a login form.
+ */
+const GOTRUE_ERROR_CODES: Record<string, AppErrorCode> = {
+  invalid_credentials: 'invalidCredentials',
+  user_already_exists: 'emailInUse',
+  email_exists: 'emailInUse',
+  weak_password: 'weakPassword',
+  same_password: 'samePassword',
+  over_email_send_rate_limit: 'rateLimit',
+  over_request_rate_limit: 'rateLimit',
+  otp_expired: 'expiredLink',
+};
+
+/**
  * Convert any thrown value from a Supabase call into an AppError.
  * Idempotent: an AppError passes through unchanged.
  */
@@ -65,6 +96,12 @@ export function normalizeSupabaseError(err: unknown): AppError {
     err instanceof TypeError
   ) {
     return new AppError('network', err);
+  }
+
+  // Specific GoTrue validation failures (must precede the generic 401 check —
+  // some carry 4xx statuses that would otherwise collapse into 'auth')
+  if (code && GOTRUE_ERROR_CODES[code]) {
+    return new AppError(GOTRUE_ERROR_CODES[code], err);
   }
 
   // GoTrue auth failures

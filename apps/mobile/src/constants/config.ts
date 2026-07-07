@@ -31,6 +31,9 @@ export const NOTIFICATION_CHANNELS = {
 // How many days of history to load by default
 export const HISTORY_DEFAULT_DAYS = 30;
 
+// Minimum password length — must match supabase/config.toml minimum_password_length
+export const MIN_PASSWORD_LENGTH = 8;
+
 // Minimum touch target size in dp (WCAG 2.1 AA)
 export const MIN_TOUCH_TARGET_DP = 48;
 
