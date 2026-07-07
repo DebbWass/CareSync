@@ -14,15 +14,19 @@ import {
 } from 'react-native';
 import { ActivityIndicator, Button, Text, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   useDeactivateMedication,
   useMedication,
   useUpdateMedication,
 } from '../../../src/hooks/useMedications';
+import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
+import { normalizeSupabaseError } from '../../../src/services/supabase/errors';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 
 export default function EditMedicationScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id, patientId, patientName } = useLocalSearchParams<{
     id: string;
@@ -30,7 +34,7 @@ export default function EditMedicationScreen() {
     patientName: string;
   }>();
 
-  const { data: medication, isLoading } = useMedication(id);
+  const { data: medication, isLoading, error: loadError, refetch } = useMedication(id);
   const updateMutation = useUpdateMedication(patientId ?? '');
   const deactivateMutation = useDeactivateMedication(patientId ?? '');
 
@@ -49,11 +53,11 @@ export default function EditMedicationScreen() {
 
   const handleSave = () => {
     if (!name.trim()) {
-      setError('Medication name is required.');
+      setError(t('medications.form.nameRequired'));
       return;
     }
     if (!dosage.trim()) {
-      setError('Dosage is required.');
+      setError(t('medications.form.dosageRequired'));
       return;
     }
     if (!id) return;
@@ -71,8 +75,7 @@ export default function EditMedicationScreen() {
       {
         onSuccess: () => router.back(),
         onError: (err: unknown) => {
-          const msg = err instanceof Error ? err.message : 'Failed to update medication.';
-          setError(msg);
+          setError(t(normalizeSupabaseError(err).messageKey));
         },
       }
     );
@@ -81,19 +84,18 @@ export default function EditMedicationScreen() {
   const handleDeactivate = () => {
     if (!id) return;
     Alert.alert(
-      'Remove Medication',
-      `Remove "${medication?.name}" from the active medication list? This cannot be undone, but all history is preserved.`,
+      t('medications.edit.removeTitle'),
+      t('medications.edit.removeMessage', { name: medication?.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('medications.edit.removeConfirm'),
           style: 'destructive',
           onPress: () => {
             deactivateMutation.mutate(id, {
               onSuccess: () => router.back(),
               onError: (err: unknown) => {
-                const msg = err instanceof Error ? err.message : 'Failed to remove medication.';
-                setError(msg);
+                setError(t(normalizeSupabaseError(err).messageKey));
               },
             });
           },
@@ -111,12 +113,16 @@ export default function EditMedicationScreen() {
     );
   }
 
-  if (!medication) {
+  if (loadError || !medication) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Medication not found.</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>← Go back</Text>
+        {loadError ? (
+          <ErrorBanner error={loadError} onRetry={refetch} />
+        ) : (
+          <Text style={styles.errorText}>{t('medications.edit.notFound')}</Text>
+        )}
+        <TouchableOpacity onPress={() => router.back()} accessibilityRole="button">
+          <Text style={styles.backLink}>{t('medications.edit.goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -129,16 +135,16 @@ export default function EditMedicationScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Cancel and go back"
+          accessibilityLabel={t('medications.form.cancelLabel')}
           style={styles.headerBtn}
         >
-          <Text style={styles.headerBtnText}>Cancel</Text>
+          <Text style={styles.headerBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Edit Medication</Text>
+          <Text style={styles.title}>{t('medications.edit.title')}</Text>
           {patientName ? (
             <Text style={styles.subtitle} numberOfLines={1}>
-              for {patientName}
+              {t('medications.form.forPatient', { name: patientName })}
             </Text>
           ) : null}
         </View>
@@ -151,33 +157,33 @@ export default function EditMedicationScreen() {
       >
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           <TextInput
-            label="Medication Name *"
+            label={t('medications.form.nameLabel')}
             value={name}
             onChangeText={(v) => setEdits((e) => ({ ...e, name: v }))}
             autoCapitalize="words"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Medication name"
+            accessibilityLabel={t('medications.form.nameA11y')}
           />
 
           <TextInput
-            label="Dosage *"
+            label={t('medications.form.dosageLabel')}
             value={dosage}
             onChangeText={(v) => setEdits((e) => ({ ...e, dosage: v }))}
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Dosage"
+            accessibilityLabel={t('medications.form.dosageA11y')}
           />
 
           <TextInput
-            label="Instructions (optional)"
+            label={t('medications.form.instructionsLabel')}
             value={instructions}
             onChangeText={(v) => setEdits((e) => ({ ...e, instructions: v }))}
             mode="outlined"
             multiline
             numberOfLines={3}
             style={styles.input}
-            accessibilityLabel="Instructions, optional"
+            accessibilityLabel={t('medications.form.instructionsA11y')}
           />
 
           {error ? (
@@ -193,9 +199,9 @@ export default function EditMedicationScreen() {
             disabled={updateMutation.isPending || deactivateMutation.isPending || !isDirty}
             style={styles.saveButton}
             contentStyle={styles.buttonContent}
-            accessibilityLabel="Save changes"
+            accessibilityLabel={t('medications.edit.saveA11y')}
           >
-            Save Changes
+            {t('medications.edit.saveButton')}
           </Button>
 
           <Button
@@ -208,9 +214,9 @@ export default function EditMedicationScreen() {
             }
             style={styles.schedulesButton}
             contentStyle={styles.buttonContent}
-            accessibilityLabel="Manage schedules for this medication"
+            accessibilityLabel={t('medications.edit.manageSchedulesA11y')}
           >
-            📅 Manage Schedules
+            {t('medications.edit.manageSchedules')}
           </Button>
 
           <Button
@@ -221,10 +227,10 @@ export default function EditMedicationScreen() {
             style={styles.deactivateButton}
             contentStyle={styles.buttonContent}
             textColor={Colors.light.danger}
-            accessibilityLabel="Remove this medication"
-            accessibilityHint="Removes the medication from the active list. History is preserved."
+            accessibilityLabel={t('medications.edit.removeA11y')}
+            accessibilityHint={t('medications.edit.removeHint')}
           >
-            Remove Medication
+            {t('medications.edit.removeButton')}
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>

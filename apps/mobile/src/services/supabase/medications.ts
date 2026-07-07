@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { normalizeSupabaseError } from './errors';
 import type { Medication } from '../../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -27,10 +28,7 @@ export async function getMedications(patientId: string): Promise<Medication[]> {
     .eq('is_active', true)
     .order('name', { ascending: true });
 
-  if (error) {
-    console.warn('[Medications] getMedications error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as Medication[];
 }
 
@@ -38,10 +36,7 @@ export async function getMedications(patientId: string): Promise<Medication[]> {
 export async function getMedication(id: string): Promise<Medication | null> {
   const { data, error } = await supabase.from('medications').select('*').eq('id', id).single();
 
-  if (error) {
-    console.warn('[Medications] getMedication error:', error.message);
-    return null;
-  }
+  if (error) throw normalizeSupabaseError(error);
   return data as Medication;
 }
 
@@ -53,7 +48,7 @@ export async function getMedicationCount(patientId: string): Promise<number> {
     .eq('patient_id', patientId)
     .eq('is_active', true);
 
-  if (error) return 0;
+  if (error) throw normalizeSupabaseError(error);
   return count ?? 0;
 }
 
@@ -70,7 +65,7 @@ export async function createMedication(
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
   return data as Medication;
 }
 
@@ -78,7 +73,7 @@ export async function createMedication(
 export async function updateMedication(id: string, input: UpdateMedicationInput): Promise<void> {
   const { error } = await supabase.from('medications').update(input).eq('id', id);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }
 
 /**
@@ -88,5 +83,5 @@ export async function updateMedication(id: string, input: UpdateMedicationInput)
 export async function deactivateMedication(id: string): Promise<void> {
   const { error } = await supabase.from('medications').update({ is_active: false }).eq('id', id);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }

@@ -16,17 +16,18 @@ import {
 } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useMedications } from '../../../src/hooks/useMedications';
 import { useCreateSchedule } from '../../../src/hooks/useSchedules';
 import {
   DAY_LABELS,
-  FREQUENCY_LABELS,
   defaultTimesForFrequency,
   isValidDate,
   isValidTime,
   timeSlotsForFrequency,
   todayISO,
 } from '../../../src/utils/scheduleUtils';
+import { normalizeSupabaseError } from '../../../src/services/supabase/errors';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 import type { FrequencyType } from '../../../src/types';
@@ -40,6 +41,7 @@ const FREQUENCY_OPTIONS: FrequencyType[] = [
 ];
 
 export default function NewScheduleScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const {
     patientId = '',
@@ -91,23 +93,23 @@ export default function NewScheduleScreen() {
 
   const handleSave = () => {
     if (!selectedMedId) {
-      setError('Please select a medication.');
+      setError(t('schedules.form.errSelectMedication'));
       return;
     }
-    if (times.some((t) => !isValidTime(t))) {
-      setError('All times must be in HH:MM format (24-hour), e.g. 08:00 or 20:30.');
+    if (times.some((time) => !isValidTime(time))) {
+      setError(t('schedules.form.errTimeFormat'));
       return;
     }
     if (!isValidDate(startDate)) {
-      setError('Start date must be YYYY-MM-DD.');
+      setError(t('schedules.form.errStartDate'));
       return;
     }
     if (endDate && !isValidDate(endDate)) {
-      setError('End date must be YYYY-MM-DD.');
+      setError(t('schedules.form.errEndDate'));
       return;
     }
     if ((frequency === 'weekly' || frequency === 'custom') && selectedDays.length === 0) {
-      setError('Please select at least one day of the week.');
+      setError(t('schedules.form.errSelectDay'));
       return;
     }
 
@@ -124,8 +126,7 @@ export default function NewScheduleScreen() {
       {
         onSuccess: () => router.back(),
         onError: (err: unknown) => {
-          const msg = err instanceof Error ? err.message : 'Failed to save schedule.';
-          setError(msg);
+          setError(t(normalizeSupabaseError(err).messageKey));
         },
       }
     );
@@ -142,13 +143,17 @@ export default function NewScheduleScreen() {
           onPress={() => router.back()}
           style={styles.headerBtn}
           accessibilityRole="button"
-          accessibilityLabel="Cancel"
+          accessibilityLabel={t('common.cancel')}
         >
-          <Text style={styles.headerBtnText}>Cancel</Text>
+          <Text style={styles.headerBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Add Schedule</Text>
-          {patientName ? <Text style={styles.subtitle}>for {patientName}</Text> : null}
+          <Text style={styles.title}>{t('schedules.form.addTitle')}</Text>
+          {patientName ? (
+            <Text style={styles.subtitle}>
+              {t('schedules.form.forPatient', { name: patientName })}
+            </Text>
+          ) : null}
         </View>
         <View style={styles.headerBtn} />
       </View>
@@ -159,11 +164,9 @@ export default function NewScheduleScreen() {
       >
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           {/* Medication selector */}
-          <Text style={styles.fieldLabel}>Medication *</Text>
+          <Text style={styles.fieldLabel}>{t('schedules.form.medicationLabel')}</Text>
           {medications.length === 0 ? (
-            <Text style={styles.hintText}>
-              No active medications found. Add a medication first.
-            </Text>
+            <Text style={styles.hintText}>{t('schedules.form.noMedications')}</Text>
           ) : (
             <View style={styles.chipGroup}>
               {medications.map((med) => (
@@ -194,7 +197,7 @@ export default function NewScheduleScreen() {
           )}
 
           {/* Frequency selector */}
-          <Text style={styles.fieldLabel}>Frequency *</Text>
+          <Text style={styles.fieldLabel}>{t('schedules.form.frequencyLabel')}</Text>
           <View style={styles.chipGroup}>
             {FREQUENCY_OPTIONS.map((f) => (
               <TouchableOpacity
@@ -203,27 +206,27 @@ export default function NewScheduleScreen() {
                 onPress={() => handleFrequencyChange(f)}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: frequency === f }}
-                accessibilityLabel={FREQUENCY_LABELS[f]}
+                accessibilityLabel={t(`schedules.frequency.${f}`)}
               >
                 <Text style={[styles.chipText, frequency === f && styles.chipTextSelected]}>
-                  {FREQUENCY_LABELS[f]}
+                  {t(`schedules.frequency.${f}`)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
           {/* Times of day */}
-          <Text style={styles.fieldLabel}>Times of Day * (24-hour, e.g. 08:00)</Text>
-          {times.map((t, i) => (
+          <Text style={styles.fieldLabel}>{t('schedules.form.timesLabel')}</Text>
+          {times.map((time, i) => (
             <View key={i} style={styles.timeRow}>
               <TextInput
-                value={t}
+                value={time}
                 onChangeText={(v) => handleTimeChange(i, v)}
                 placeholder="08:00"
                 keyboardType="numbers-and-punctuation"
                 mode="outlined"
                 style={styles.timeInput}
-                accessibilityLabel={`Time slot ${i + 1}`}
+                accessibilityLabel={t('schedules.form.timeSlotA11y', { number: i + 1 })}
                 maxLength={5}
               />
               {times.length > minSlots && (
@@ -231,7 +234,7 @@ export default function NewScheduleScreen() {
                   onPress={() => removeTimeSlot(i)}
                   style={styles.removeBtn}
                   accessibilityRole="button"
-                  accessibilityLabel={`Remove time slot ${i + 1}`}
+                  accessibilityLabel={t('schedules.form.removeTimeSlotA11y', { number: i + 1 })}
                 >
                   <Text style={styles.removeBtnText}>✕</Text>
                 </TouchableOpacity>
@@ -243,16 +246,16 @@ export default function NewScheduleScreen() {
               onPress={addTimeSlot}
               style={styles.addTimeBtn}
               accessibilityRole="button"
-              accessibilityLabel="Add another time slot"
+              accessibilityLabel={t('schedules.form.addTimeSlotA11y')}
             >
-              <Text style={styles.addTimeBtnText}>+ Add time slot</Text>
+              <Text style={styles.addTimeBtnText}>{t('schedules.form.addTimeSlot')}</Text>
             </TouchableOpacity>
           )}
 
           {/* Days of week (weekly/custom only) */}
           {showDayPicker && (
             <>
-              <Text style={styles.fieldLabel}>Days of Week *</Text>
+              <Text style={styles.fieldLabel}>{t('schedules.form.daysLabel')}</Text>
               <View style={styles.daysRow}>
                 {DAY_LABELS.map((label, i) => (
                   <TouchableOpacity
@@ -278,7 +281,7 @@ export default function NewScheduleScreen() {
           )}
 
           {/* Date range */}
-          <Text style={styles.fieldLabel}>Start Date * (YYYY-MM-DD)</Text>
+          <Text style={styles.fieldLabel}>{t('schedules.form.startDateLabel')}</Text>
           <TextInput
             value={startDate}
             onChangeText={setStartDate}
@@ -286,19 +289,19 @@ export default function NewScheduleScreen() {
             keyboardType="numbers-and-punctuation"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Start date"
+            accessibilityLabel={t('schedules.form.startDateA11y')}
             maxLength={10}
           />
 
-          <Text style={styles.fieldLabel}>End Date (optional)</Text>
+          <Text style={styles.fieldLabel}>{t('schedules.form.endDateLabel')}</Text>
           <TextInput
             value={endDate}
             onChangeText={setEndDate}
-            placeholder="Leave blank for ongoing"
+            placeholder={t('schedules.form.endDatePlaceholder')}
             keyboardType="numbers-and-punctuation"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="End date, optional"
+            accessibilityLabel={t('schedules.form.endDateA11y')}
             maxLength={10}
           />
 
@@ -315,9 +318,9 @@ export default function NewScheduleScreen() {
             disabled={createMutation.isPending}
             style={styles.saveButton}
             contentStyle={styles.buttonContent}
-            accessibilityLabel="Save schedule"
+            accessibilityLabel={t('schedules.form.saveA11y')}
           >
-            Save Schedule
+            {t('schedules.form.saveButton')}
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>

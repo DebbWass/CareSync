@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { ActivityIndicator, Button, Text, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   useDeactivateSchedule,
   useSchedule,
@@ -21,16 +22,18 @@ import {
 } from '../../../src/hooks/useSchedules';
 import {
   DAY_LABELS,
-  FREQUENCY_LABELS,
   formatTimes,
   isValidDate,
   isValidTime,
 } from '../../../src/utils/scheduleUtils';
+import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
+import { normalizeSupabaseError } from '../../../src/services/supabase/errors';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 import type { FrequencyType } from '../../../src/types';
 
 export default function EditScheduleScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const {
     id,
@@ -43,7 +46,7 @@ export default function EditScheduleScreen() {
     medicationId: string;
   }>();
 
-  const { data: schedule, isLoading } = useSchedule(id);
+  const { data: schedule, isLoading, error: loadError, refetch } = useSchedule(id);
   const updateMutation = useUpdateSchedule(medicationId, patientId);
   const deactivateMutation = useDeactivateSchedule(medicationId, patientId);
 
@@ -81,16 +84,16 @@ export default function EditScheduleScreen() {
   };
 
   const handleSave = () => {
-    if (times.some((t) => !isValidTime(t))) {
-      setError('All times must be HH:MM (24-hour format).');
+    if (times.some((time) => !isValidTime(time))) {
+      setError(t('schedules.form.errTimeFormat'));
       return;
     }
     if (startDate && !isValidDate(startDate)) {
-      setError('Start date must be YYYY-MM-DD.');
+      setError(t('schedules.form.errStartDate'));
       return;
     }
     if (endDate && !isValidDate(endDate)) {
-      setError('End date must be YYYY-MM-DD.');
+      setError(t('schedules.form.errEndDate'));
       return;
     }
 
@@ -100,7 +103,7 @@ export default function EditScheduleScreen() {
       {
         onSuccess: () => router.back(),
         onError: (err: unknown) => {
-          setError(err instanceof Error ? err.message : 'Failed to update schedule.');
+          setError(t(normalizeSupabaseError(err).messageKey));
         },
       }
     );
@@ -108,18 +111,21 @@ export default function EditScheduleScreen() {
 
   const handleDeactivate = () => {
     Alert.alert(
-      'Remove Schedule',
-      `Remove this ${FREQUENCY_LABELS[freq]} schedule (${formatTimes(times)})? Future reminders from this schedule will stop.`,
+      t('schedules.edit.removeTitle'),
+      t('schedules.edit.removeMessage', {
+        frequency: t(`schedules.frequency.${freq}`),
+        times: formatTimes(times),
+      }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('schedules.edit.removeConfirm'),
           style: 'destructive',
           onPress: () =>
             deactivateMutation.mutate(id!, {
               onSuccess: () => router.back(),
               onError: (err: unknown) => {
-                setError(err instanceof Error ? err.message : 'Failed to remove schedule.');
+                setError(t(normalizeSupabaseError(err).messageKey));
               },
             }),
         },
@@ -135,12 +141,16 @@ export default function EditScheduleScreen() {
     );
   }
 
-  if (!schedule) {
+  if (loadError || !schedule) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Schedule not found.</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>← Go back</Text>
+        {loadError ? (
+          <ErrorBanner error={loadError} onRetry={refetch} />
+        ) : (
+          <Text style={styles.errorText}>{t('schedules.edit.notFound')}</Text>
+        )}
+        <TouchableOpacity onPress={() => router.back()} accessibilityRole="button">
+          <Text style={styles.backLink}>{t('schedules.edit.goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -153,13 +163,13 @@ export default function EditScheduleScreen() {
           onPress={() => router.back()}
           style={styles.headerBtn}
           accessibilityRole="button"
-          accessibilityLabel="Cancel"
+          accessibilityLabel={t('common.cancel')}
         >
-          <Text style={styles.headerBtnText}>Cancel</Text>
+          <Text style={styles.headerBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Edit Schedule</Text>
-          <Text style={styles.subtitle}>{FREQUENCY_LABELS[freq]}</Text>
+          <Text style={styles.title}>{t('schedules.form.editTitle')}</Text>
+          <Text style={styles.subtitle}>{t(`schedules.frequency.${freq}`)}</Text>
         </View>
         <View style={styles.headerBtn} />
       </View>
@@ -169,24 +179,24 @@ export default function EditScheduleScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-          <Text style={styles.fieldLabel}>Times of Day (HH:MM 24-hour)</Text>
-          {times.map((t, i) => (
+          <Text style={styles.fieldLabel}>{t('schedules.edit.timesLabel')}</Text>
+          {times.map((time, i) => (
             <TextInput
               key={i}
-              value={t}
+              value={time}
               onChangeText={(v) => handleTimeChange(i, v)}
               placeholder="08:00"
               keyboardType="numbers-and-punctuation"
               mode="outlined"
               style={styles.input}
-              accessibilityLabel={`Time slot ${i + 1}`}
+              accessibilityLabel={t('schedules.form.timeSlotA11y', { number: i + 1 })}
               maxLength={5}
             />
           ))}
 
           {showDays && (
             <>
-              <Text style={styles.fieldLabel}>Days of Week</Text>
+              <Text style={styles.fieldLabel}>{t('schedules.edit.daysLabel')}</Text>
               <View style={styles.daysRow}>
                 {DAY_LABELS.map((label, i) => (
                   <TouchableOpacity
@@ -208,7 +218,7 @@ export default function EditScheduleScreen() {
             </>
           )}
 
-          <Text style={styles.fieldLabel}>Start Date (YYYY-MM-DD)</Text>
+          <Text style={styles.fieldLabel}>{t('schedules.edit.startDateLabel')}</Text>
           <TextInput
             value={startDate}
             onChangeText={(v) => setEdits((e) => ({ ...e, start_date: v }))}
@@ -216,19 +226,19 @@ export default function EditScheduleScreen() {
             keyboardType="numbers-and-punctuation"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Start date"
+            accessibilityLabel={t('schedules.form.startDateA11y')}
             maxLength={10}
           />
 
-          <Text style={styles.fieldLabel}>End Date (optional)</Text>
+          <Text style={styles.fieldLabel}>{t('schedules.form.endDateLabel')}</Text>
           <TextInput
             value={endDate}
             onChangeText={(v) => setEdits((e) => ({ ...e, end_date: v }))}
-            placeholder="Leave blank for ongoing"
+            placeholder={t('schedules.form.endDatePlaceholder')}
             keyboardType="numbers-and-punctuation"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="End date, optional"
+            accessibilityLabel={t('schedules.form.endDateA11y')}
             maxLength={10}
           />
 
@@ -246,7 +256,7 @@ export default function EditScheduleScreen() {
             style={styles.saveButton}
             contentStyle={styles.buttonContent}
           >
-            Save Changes
+            {t('schedules.edit.saveButton')}
           </Button>
 
           <Button
@@ -258,7 +268,7 @@ export default function EditScheduleScreen() {
             contentStyle={styles.buttonContent}
             textColor={Colors.light.danger}
           >
-            Remove Schedule
+            {t('schedules.edit.removeButton')}
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { normalizeSupabaseError } from './errors';
 import type { FrequencyType, MedicationSchedule } from '../../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -37,10 +38,7 @@ export async function getSchedulesForMedication(
     .eq('is_active', true)
     .order('created_at', { ascending: true });
 
-  if (error) {
-    console.warn('[Schedules] getSchedulesForMedication error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as MedicationSchedule[];
 }
 
@@ -53,10 +51,7 @@ export async function getSchedulesForPatient(patientId: string): Promise<Schedul
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.warn('[Schedules] getSchedulesForPatient error:', error.message);
-    return [];
-  }
+  if (error) throw normalizeSupabaseError(error);
   return (data ?? []) as ScheduleWithMedication[];
 }
 
@@ -68,10 +63,7 @@ export async function getSchedule(id: string): Promise<MedicationSchedule | null
     .eq('id', id)
     .single();
 
-  if (error) {
-    console.warn('[Schedules] getSchedule error:', error.message);
-    return null;
-  }
+  if (error) throw normalizeSupabaseError(error);
   return data as MedicationSchedule;
 }
 
@@ -84,14 +76,14 @@ export async function createSchedule(input: CreateScheduleInput): Promise<Medica
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
   return data as MedicationSchedule;
 }
 
 export async function updateSchedule(id: string, input: UpdateScheduleInput): Promise<void> {
   const { error } = await supabase.from('medication_schedules').update(input).eq('id', id);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }
 
 export async function deactivateSchedule(id: string): Promise<void> {
@@ -100,5 +92,5 @@ export async function deactivateSchedule(id: string): Promise<void> {
     .update({ is_active: false })
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }

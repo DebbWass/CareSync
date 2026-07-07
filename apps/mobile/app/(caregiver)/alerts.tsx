@@ -6,41 +6,28 @@ import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useAlerts, useMarkAlertRead, useMarkAllAlertsRead } from '../../src/hooks/useAlerts';
+import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { Colors } from '../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../src/constants/typography';
 import type { Alert, AlertType } from '../../src/types';
 
-// ── Alert type config ─────────────────────────────────────────────────────────
+// ── Alert type config (labels resolved via i18n at render time) ───────────────
 
-const ALERT_CONFIG: Record<AlertType, { icon: string; label: string; color: string }> = {
-  missed: {
-    icon: '⚠',
-    label: 'Missed dose',
-    color: Colors.light.danger,
-  },
-  snoozed_limit: {
-    icon: '⏱',
-    label: 'Snooze limit reached',
-    color: Colors.light.snooze,
-  },
-  low_adherence: {
-    icon: '📉',
-    label: 'Low adherence',
-    color: Colors.light.snooze,
-  },
-  new_medication: {
-    icon: '💊',
-    label: 'New medication',
-    color: Colors.light.primary,
-  },
+const ALERT_CONFIG: Record<AlertType, { icon: string; color: string }> = {
+  missed: { icon: '⚠', color: Colors.light.danger },
+  snoozed_limit: { icon: '⏱', color: Colors.light.snooze },
+  low_adherence: { icon: '📉', color: Colors.light.snooze },
+  new_medication: { icon: '💊', color: Colors.light.primary },
 };
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AlertsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
-  const { data: alerts = [], isLoading, error } = useAlerts();
+  const { data: alerts = [], isLoading, error, refetch } = useAlerts();
   const markRead = useMarkAlertRead();
   const markAllRead = useMarkAllAlertsRead();
 
@@ -54,13 +41,15 @@ export default function AlertsScreen() {
           onPress={() => router.back()}
           style={styles.headerBtn}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.backLabel')}
         >
-          <Text style={styles.headerBtnText}>← Back</Text>
+          <Text style={styles.headerBtnText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Alerts</Text>
-          {unreadCount > 0 && <Text style={styles.subtitle}>{unreadCount} unread</Text>}
+          <Text style={styles.title}>{t('alerts.title')}</Text>
+          {unreadCount > 0 && (
+            <Text style={styles.subtitle}>{t('alerts.unreadCount', { count: unreadCount })}</Text>
+          )}
         </View>
         {unreadCount > 0 ? (
           <TouchableOpacity
@@ -68,9 +57,11 @@ export default function AlertsScreen() {
             style={styles.headerBtn}
             disabled={markAllRead.isPending}
             accessibilityRole="button"
-            accessibilityLabel="Mark all alerts as read"
+            accessibilityLabel={t('alerts.readAllLabel')}
           >
-            <Text style={styles.markAllText}>{markAllRead.isPending ? '...' : 'Read all'}</Text>
+            <Text style={styles.markAllText}>
+              {markAllRead.isPending ? '...' : t('alerts.readAll')}
+            </Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.headerBtn} />
@@ -83,11 +74,7 @@ export default function AlertsScreen() {
           <ActivityIndicator size="large" color={Colors.light.primary} />
         </View>
       ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText} accessibilityRole="alert">
-            Could not load alerts. Please check your connection.
-          </Text>
-        </View>
+        <ErrorBanner error={error} onRetry={refetch} />
       ) : (
         <FlatList
           data={alerts}
@@ -104,13 +91,11 @@ export default function AlertsScreen() {
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={styles.emptyIcon}>✓</Text>
-              <Text style={styles.emptyTitle}>No alerts</Text>
-              <Text style={styles.emptyBody}>
-                All patients are up to date with their medications.
-              </Text>
+              <Text style={styles.emptyTitle}>{t('alerts.emptyTitle')}</Text>
+              <Text style={styles.emptyBody}>{t('alerts.emptyBody')}</Text>
             </View>
           }
-          accessibilityLabel="Alert list"
+          accessibilityLabel={t('alerts.listLabel')}
         />
       )}
     </View>
@@ -126,8 +111,12 @@ interface AlertRowProps {
 }
 
 function AlertRow({ alert, onMarkRead, isMarkingRead }: AlertRowProps) {
+  const { t } = useTranslation();
   const cfg = ALERT_CONFIG[alert.alert_type];
-  const patientName = (alert as Alert & { patient?: { name: string } }).patient?.name ?? 'Patient';
+  const typeLabel = t(`alerts.type.${alert.alert_type}`);
+  const patientName =
+    (alert as Alert & { patient?: { name: string } }).patient?.name ??
+    t('alerts.defaultPatientName');
   const scheduledTime = alert.medication_events?.scheduled_time;
 
   return (
@@ -135,10 +124,14 @@ function AlertRow({ alert, onMarkRead, isMarkingRead }: AlertRowProps) {
       style={[styles.row, !alert.is_read && styles.rowUnread]}
       accessible
       accessibilityLabel={[
-        alert.is_read ? '' : 'Unread.',
-        cfg.label,
-        `for ${patientName}`,
-        scheduledTime ? `scheduled ${format(new Date(scheduledTime), "MMM d 'at' h:mm a")}` : '',
+        alert.is_read ? '' : t('alerts.unreadPrefix'),
+        typeLabel,
+        t('alerts.forPatient', { name: patientName }),
+        scheduledTime
+          ? t('alerts.scheduledA11y', {
+              time: format(new Date(scheduledTime), "MMM d 'at' h:mm a"),
+            })
+          : '',
         format(new Date(alert.created_at), 'MMM d'),
       ]
         .filter(Boolean)
@@ -151,11 +144,13 @@ function AlertRow({ alert, onMarkRead, isMarkingRead }: AlertRowProps) {
 
       {/* Details */}
       <View style={styles.rowDetails}>
-        <Text style={styles.alertLabel}>{cfg.label}</Text>
+        <Text style={styles.alertLabel}>{typeLabel}</Text>
         <Text style={styles.patientName}>{patientName}</Text>
         {scheduledTime ? (
           <Text style={styles.time}>
-            Scheduled: {format(new Date(scheduledTime), "MMM d 'at' h:mm a")}
+            {t('alerts.scheduledAt', {
+              time: format(new Date(scheduledTime), "MMM d 'at' h:mm a"),
+            })}
           </Text>
         ) : null}
         <Text style={styles.createdAt}>
@@ -172,7 +167,7 @@ function AlertRow({ alert, onMarkRead, isMarkingRead }: AlertRowProps) {
             disabled={isMarkingRead}
             style={styles.readBtn}
             accessibilityRole="button"
-            accessibilityLabel="Mark as read"
+            accessibilityLabel={t('alerts.markRead')}
           >
             {isMarkingRead ? (
               <ActivityIndicator size="small" color={Colors.light.primary} />

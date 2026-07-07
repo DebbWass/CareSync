@@ -15,20 +15,29 @@ import {
 import { ActivityIndicator, Button, Text, TextInput } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useLinkedPatients, usePendingInvitations } from '../../../src/hooks/usePatients';
 import { invitePatientByEmail, revokeAccess } from '../../../src/services/supabase/patients';
 import { patientKeys } from '../../../src/hooks/usePatients';
 import { useAuthStore } from '../../../src/store/authStore';
+import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
+import { normalizeSupabaseError } from '../../../src/services/supabase/errors';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 import type { PatientCaregiverRelationship, User } from '../../../src/types';
 
 export default function PatientManagementScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const qc = useQueryClient();
   const caregiverId = useAuthStore((s) => s.profile?.id ?? '');
 
-  const { data: patients = [], isLoading: patientsLoading } = useLinkedPatients();
+  const {
+    data: patients = [],
+    isLoading: patientsLoading,
+    error: patientsError,
+    refetch: refetchPatients,
+  } = useLinkedPatients();
   const { data: pending = [], isLoading: pendingLoading } = usePendingInvitations();
 
   const [inviteEmail, setInviteEmail] = useState('');
@@ -38,7 +47,7 @@ export default function PatientManagementScreen() {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
-      setInviteError('Enter an email address.');
+      setInviteError(t('patients.inviteEmptyEmail'));
       return;
     }
     setInviteError('');
@@ -46,11 +55,15 @@ export default function PatientManagementScreen() {
     setInviteLoading(true);
     try {
       await invitePatientByEmail(caregiverId, inviteEmail);
-      setInviteSuccess(`Invitation sent to ${inviteEmail.trim()}.`);
+      setInviteSuccess(t('patients.inviteSuccess', { email: inviteEmail.trim() }));
       setInviteEmail('');
       qc.invalidateQueries({ queryKey: patientKeys.pending(caregiverId) });
     } catch (err: unknown) {
-      setInviteError(err instanceof Error ? err.message : 'Failed to send invitation.');
+      // Contextual copy for the two expected failures; generic otherwise
+      const appError = normalizeSupabaseError(err);
+      if (appError.code === 'notFound') setInviteError(t('patients.inviteNotFound'));
+      else if (appError.code === 'conflict') setInviteError(t('patients.inviteConflict'));
+      else setInviteError(t(appError.messageKey));
     } finally {
       setInviteLoading(false);
     }
@@ -58,19 +71,19 @@ export default function PatientManagementScreen() {
 
   const handleRevoke = (rel: PatientCaregiverRelationship & { patient: User }) => {
     Alert.alert(
-      'Remove Patient',
-      `Remove ${rel.patient.name} from your patients? You will no longer receive alerts for them.`,
+      t('patients.removeTitle'),
+      t('patients.removeMessage', { name: rel.patient.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('patients.removeConfirm'),
           style: 'destructive',
           onPress: async () => {
             try {
               await revokeAccess(rel.id);
               qc.invalidateQueries({ queryKey: patientKeys.linked(caregiverId) });
             } catch (e) {
-              console.error('Revoke error:', e);
+              Alert.alert(t('patients.removeFailed'), t(normalizeSupabaseError(e).messageKey));
             }
           },
         },
@@ -86,11 +99,11 @@ export default function PatientManagementScreen() {
           onPress={() => router.back()}
           style={styles.headerBtn}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.backLabel')}
         >
-          <Text style={styles.headerBtnText}>← Back</Text>
+          <Text style={styles.headerBtnText}>{t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>My Patients</Text>
+        <Text style={styles.title}>{t('patients.title')}</Text>
         <View style={styles.headerBtn} />
       </View>
 
@@ -105,21 +118,19 @@ export default function PatientManagementScreen() {
           ListHeaderComponent={
             <View style={styles.listHeader}>
               {/* Invite form */}
-              <Text style={styles.sectionTitle}>Invite a Patient</Text>
-              <Text style={styles.sectionSubtitle}>
-                Enter the email address of the patient&apos;s CareSync account.
-              </Text>
+              <Text style={styles.sectionTitle}>{t('patients.inviteTitle')}</Text>
+              <Text style={styles.sectionSubtitle}>{t('patients.inviteSubtitle')}</Text>
               <View style={styles.inviteRow}>
                 <TextInput
                   value={inviteEmail}
                   onChangeText={setInviteEmail}
-                  label="Patient email"
+                  label={t('patients.inviteEmailLabel')}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
                   mode="outlined"
                   style={styles.inviteInput}
-                  accessibilityLabel="Patient email address"
+                  accessibilityLabel={t('patients.inviteEmailA11y')}
                 />
                 <Button
                   mode="contained"
@@ -127,9 +138,9 @@ export default function PatientManagementScreen() {
                   loading={inviteLoading}
                   disabled={inviteLoading}
                   style={styles.inviteButton}
-                  accessibilityLabel="Send invitation"
+                  accessibilityLabel={t('patients.inviteButtonA11y')}
                 >
-                  Invite
+                  {t('patients.inviteButton')}
                 </Button>
               </View>
               {inviteError ? (
@@ -146,23 +157,28 @@ export default function PatientManagementScreen() {
               {/* Pending invitations */}
               {pendingLoading ? null : pending.length > 0 ? (
                 <>
-                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Pending Invitations</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+                    {t('patients.pendingTitle')}
+                  </Text>
                   {pending.map((rel) => (
                     <View key={rel.id} style={styles.pendingRow}>
                       <Text style={styles.pendingName}>
                         {(rel as PatientCaregiverRelationship & { patient?: { name?: string } })
-                          .patient?.name ?? 'Awaiting acceptance'}
+                          .patient?.name ?? t('patients.pendingAwaiting')}
                       </Text>
-                      <Text style={styles.pendingStatus}>⏳ Pending</Text>
+                      <Text style={styles.pendingStatus}>{t('patients.pendingBadge')}</Text>
                     </View>
                   ))}
                 </>
               ) : null}
 
-              {/* Active patients header */}
+              {/* Active patients */}
               <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-                Active Patients ({patients.length})
+                {t('patients.activeTitle', { count: patients.length })}
               </Text>
+              {patientsError ? (
+                <ErrorBanner error={patientsError} onRetry={refetchPatients} />
+              ) : null}
             </View>
           }
           renderItem={({ item }) => (
@@ -186,10 +202,8 @@ export default function PatientManagementScreen() {
           )}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
-            !patientsLoading ? (
-              <Text style={styles.emptyText}>
-                No active patients yet. Send an invitation above.
-              </Text>
+            !patientsLoading && !patientsError ? (
+              <Text style={styles.emptyText}>{t('patients.emptyText')}</Text>
             ) : null
           }
           ListFooterComponent={
@@ -216,6 +230,7 @@ interface PatientRowProps {
 }
 
 function PatientRow({ rel, onRevoke, onViewMedications }: PatientRowProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.patientRow}>
       <View style={styles.patientAvatar}>
@@ -230,7 +245,7 @@ function PatientRow({ rel, onRevoke, onViewMedications }: PatientRowProps) {
           onPress={onViewMedications}
           style={styles.actionBtn}
           accessibilityRole="button"
-          accessibilityLabel={`View medications for ${rel.patient.name}`}
+          accessibilityLabel={t('patients.viewMedsLabel', { name: rel.patient.name })}
         >
           <Text style={styles.actionBtnText}>💊</Text>
         </TouchableOpacity>
@@ -238,7 +253,7 @@ function PatientRow({ rel, onRevoke, onViewMedications }: PatientRowProps) {
           onPress={onRevoke}
           style={[styles.actionBtn, styles.revokeBtn]}
           accessibilityRole="button"
-          accessibilityLabel={`Remove ${rel.patient.name}`}
+          accessibilityLabel={t('patients.removeLabel', { name: rel.patient.name })}
         >
           <Text style={styles.revokeBtnText}>✕</Text>
         </TouchableOpacity>
