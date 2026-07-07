@@ -63,6 +63,8 @@ export interface MedicationEvent {
   status: EventStatus;
   snooze_count: number;
   notes?: string;
+  // Set by the scheduler when the reminder push was handed to the provider
+  notified_at?: string;
   created_at: string;
   // Joined data
   medications?: Pick<Medication, 'name' | 'dosage' | 'instructions'>;

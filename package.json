@@ -12,6 +12,7 @@
     "test": "npm run test --prefix apps/mobile",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "db:types": "supabase gen types typescript --local > apps/mobile/src/types/database.ts"
+    "db:types": "supabase gen types typescript --local > apps/mobile/src/types/database.ts",
+    "scheduler:run": "node scripts/invoke-scheduler.mjs"
   }
 }
