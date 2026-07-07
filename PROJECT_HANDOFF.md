@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
-**Snapshot date:** 2026-07-07
-**Branch state:** `develop` = milestones M0–M4 merged (PRs #6–#12); promotion PR #13 (`develop` → `main`) open
-**Overall completion: ~45%** of the production-rebuild scope (5 of 12 milestones done)
+**Snapshot date:** 2026-07-07 (second session)
+**Branch state:** `develop` = M0–M4 merged; promotion PR #13 (`develop` → `main`) MERGED; M5 code on `feature/m5-patient-reminder` (PR open, awaiting user review + device validation)
+**Overall completion: ~50%** of the production-rebuild scope (M5 code complete; its device-validation tail remains)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -174,23 +174,33 @@ the milestone list below is the durable copy.
       25 Deno tests, `npm run scheduler:run`. **Verified live** on the local
       stack including a webhook-replay dedup proof. Complete.
 
-**Test totals on develop:** 78 Jest · 25 Deno · 47 pgTAP · 8 CI jobs green.
+- [~] **M5 — Patient reminder experience** (feature/m5-patient-reminder — CODE
+      COMPLETE, PR open). Fixed the `snoozeEvent` read-then-increment race with
+      a `snooze_event(uuid)` RPC (SECURITY INVOKER single-UPDATE increment,
+      status-guarded, pgTAP-covered; migration 20260707000002). Optimistic
+      confirm/snooze with rollback in `useMedicationEvent` (hook tests cover
+      optimistic + rollback + null-RPC-result paths). All four patient
+      surfaces hardened: i18n (`patient.*` namespace), ErrorBanner with retry,
+      design-system Text/Button (font-scale aware), theme-aware deep-link
+      screen, localized tab labels. Button + ErrorBanner made high-contrast
+      aware (were hardcoded to the light palette). Maestro: new
+      `05_patient_confirm_medication.yaml`; fixed flow 02 missing tab-nav step.
+      **REMAINING (user actions):** review/merge the PR; EAS dev build on a
+      physical Android device; validate cron → push → tap → confirm → caregiver
+      update incl. killed-app cold start; father's device-profile checkpoint
+      (font scale ≥1.3, TalkBack).
+
+**Test totals on develop+M5 branch:** 98 Jest · 25 Deno · 55 pgTAP · 8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
 
 ### High priority — required for production
 
-- [ ] **M5 — Patient reminder experience** (THE core loop). Harden
-      `app/(patient)/index.tsx`, `app/reminder/[eventId].tsx`,
-      `app/(patient)/history.tsx`, `src/components/patient/ReminderCard.tsx`
-      to design-system + elderly-a11y standards (48sp med name, 80dp confirm,
-      snooze-limit UX, ErrorBanner, `t()` strings); optimistic confirm/snooze
-      with rollback; **fix the `snoozeEvent` read-then-increment race**
-      (`src/services/supabase/events.ts` — make atomic, e.g. RPC);
-      validate push→tap→confirm end-to-end on a **physical EAS dev build**
-      including killed-app cold start. Depends on: EAS login/build (user
-      action). Complexity: **High**. Ends with the user verifying on her
-      father's device profile (font scale, TalkBack).
+- [ ] **M5 — validation tail** (code complete, see Completed section). What
+      remains is entirely user-in-the-loop: merge the open M5 PR after review,
+      EAS dev build on a physical Android device, validate
+      push→tap→confirm end-to-end including killed-app cold start, and the
+      father's device-profile checkpoint (font scale, TalkBack).
 - [ ] **M6 — Hebrew + RTL + language switcher.** Full `he.json` (elderly-simple
       Hebrew — user reviews copy); switcher writes settingsStore + `users
       .language`; `I18nManager.forceRTL` + `Updates.reloadAsync` flow; RTL
@@ -238,8 +248,6 @@ the milestone list below is the durable copy.
 - [ ] Deduplicate frequency/day labels: `FREQUENCY_LABELS` in
       `scheduleUtils.ts` now overlaps `schedules.frequency.*` i18n keys —
       remove the constant after M6 localizes `DAY_LABELS`. **Low**.
-- [ ] `(patient)/_layout.tsx` tab labels ("Today"/"History") are still
-      hardcoded English — fold into M5/M6 sweep. **Low**.
 - [ ] Update `CLAUDE.md` (still describes the pre-rebuild "7 phases"; commands
       and schema sections need a refresh; add: read PROJECT_HANDOFF.md first).
       Also refresh `docs/architecture.md`, `docs/api-reference.md`,
@@ -253,16 +261,23 @@ the milestone list below is the durable copy.
 
 ## Known Issues
 
-1. `snoozeEvent` race (read-then-increment) — two rapid snoozes could lose a
-   count. Fix scheduled for M5 (atomic RPC).
-2. Patient screens don't yet meet the elderly-a11y spec and bypass the
-   ErrorBanner/i18n patterns (pre-rebuild code, M5 scope).
-3. Fresh-signup bounce possibility if profile trigger lags (see Medium item).
-4. Maestro flow 02 references a stale button label.
-5. `docs/` other than db-schema.md and notification-flow.md are partly stale.
-6. GitHub Actions once silently dropped a workflow run for a pushed commit
+1. Fresh-signup bounce possibility if profile trigger lags (see Medium item).
+2. `docs/` other than db-schema.md and notification-flow.md are partly stale.
+3. GitHub Actions once silently dropped a workflow run for a pushed commit
    (PR #9 fix commit) — if CI seems missing, check `gh run list` before
    assuming success.
+4. Jest full-suite runs on Windows sometimes print "worker process has failed
+   to exit gracefully"; `--detectOpenHandles` finds nothing, all tests pass,
+   and subsets run clean — treated as a flaky local artifact; watch CI.
+5. Snoozing does not schedule a re-push server-side: the chosen snooze
+   minutes are UI-only today (the scheduler pushes once per dose via
+   `notified_at`). The reminder card stays visible until taken/missed, which
+   is honest UX, but a true "remind me again in N minutes" needs scheduler
+   support — candidate for M11 scope discussion.
+
+Resolved this session: the `snoozeEvent` read-then-increment race (atomic
+RPC), patient screens bypassing a11y/i18n/ErrorBanner patterns, and the
+stale Maestro flow 02 (missing Medications-tab navigation step).
 
 ## Technical Debt
 
@@ -332,24 +347,24 @@ carry rationale comments.
 
 ## Current Development Status
 
-Last session completed M4 (notification hardening, PR #12, merged) and opened
-the M0–M4 promotion PR #13 (`develop`→`main`, **still open — merge it**).
-Nothing is half-finished on `develop`; the tree is clean. The immediate next
-work is M5.
+This session: merged promotion PR #13 (M0–M4 → `main`), then built all of
+M5's code scope on `feature/m5-patient-reminder` and opened its PR into
+`develop` (see the PR body for the completion report). `develop` itself is
+clean. The M5 PR intentionally awaits the user: patient-facing visuals are
+her approval checkpoint, and the milestone's definition of done includes
+physical-device validation only she can run.
 
 ## Next Recommended Tasks (in order)
 
-1. Merge promotion PR #13.
-2. **M5 kickoff**: fix `snoozeEvent` atomicity; harden the three patient
-   screens + ReminderCard (design system, a11y spec, ErrorBanner, `t()`);
-   optimistic confirm/snooze.
-3. EAS dev build on a physical Android device; validate cron → push → tap →
-   fullscreen reminder → confirm → caregiver dashboard update, including the
-   killed-app cold-start path.
-4. New Maestro flow `patient-confirm-medication.yaml`; refresh stale flows.
-5. User checkpoint: demo with father's device profile (font scale ≥1.3,
+1. **User: review + merge the M5 PR** (all 8 CI jobs must be green first).
+2. **User: EAS dev build** on a physical Android device; validate cron →
+   push → tap → fullscreen reminder → confirm → caregiver dashboard update,
+   including the killed-app cold-start path (`npm run scheduler:run` against
+   the local stack, or the deployed cron).
+3. User checkpoint: demo with father's device profile (font scale ≥1.3,
    TalkBack spot-check).
-6. Then M6 (Hebrew/RTL) — see roadmap above.
+4. Then M6 (Hebrew/RTL) — see roadmap above. Its prerequisite (M5 patient
+   screens fully on `t()`) is now satisfied.
 
 ## Risks — do not break these
 
