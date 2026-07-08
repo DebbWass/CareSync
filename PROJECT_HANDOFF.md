@@ -305,10 +305,12 @@ the milestone list below is the durable copy.
       still rolls back), both outboxes ride the one NetInfo flusher. No DB change
       (uses the existing table + RLS). +7 Jest. **REMAINING (M11 release-prep,
       largely user-gated):** flip the `npm audit` CI job to blocking (bundle with
-      the next Expo SDK bump — see the runbook triage); Hebrew/English user
-      manuals; the EAS production build profile (needs real secrets); the full
-      Maestro suite as a release gate. (Runbook + npm audit triage + `npm run
-      chaos` are done.) These are the natural
+      the next Expo SDK bump — see the runbook triage); **Hebrew** user manual +
+      personalising the English draft (an English draft `docs/user-guide.md`
+      exists — owner reviews/personalises + approves the Hebrew); the EAS
+      production build profile (needs real secrets); the full Maestro suite as a
+      release gate. (Runbook + npm audit triage + `npm run chaos` + the English
+      user-guide draft are done.) These are the natural
       contents of a follow-up "M11 release prep" PR.
 
 **Test totals (develop + M11 branch):** 150 Jest · 31 Deno · 77 pgTAP ·
@@ -337,9 +339,10 @@ the milestone list below is the durable copy.
       abuses the PostgREST surface to prove idempotent dose generation,
       audit-log immutability even for service_role, message exactly-once and
       alert dedup all hold; verified green locally) are done. **Release-prep
-      half STILL REMAINS:** he/en user manuals; EAS production secrets/env; full
-      Maestro suite as release gate; and the audit-gate flip itself. Complexity:
-      **Medium**.
+      half STILL REMAINS:** Hebrew user manual + personalising the English draft
+      (`docs/user-guide.md` drafted; owner reviews + approves Hebrew); EAS
+      production secrets/env; full Maestro suite as release gate; and the
+      audit-gate flip itself. Complexity: **Medium**.
       - **npm audit triage (recorded in runbook §4):** the CI Dependency Audit
         job stays non-blocking on purpose. The remaining high/critical advisories
         are transitive **build-toolchain** deps (`shell-quote`/`undici` via
