@@ -67,14 +67,24 @@ export default function PatientAdherenceScreen() {
         ) : error ? (
           <ErrorBanner error={error} onRetry={refetch} />
         ) : summary.percent === null ? (
-          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.emptyCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
             <Text style={[styles.emptyText, { color: theme.secondary }]}>
               {t('analytics.empty', { days: ADHERENCE_WINDOW_DAYS })}
             </Text>
           </View>
         ) : (
           <>
-            <HeadlineCard theme={theme} percent={summary.percent} taken={summary.takenDoses} total={summary.totalDoses} />
+            <HeadlineCard
+              theme={theme}
+              percent={summary.percent}
+              taken={summary.takenDoses}
+              total={summary.totalDoses}
+            />
             <TrendSection theme={theme} days={days} />
           </>
         )}
@@ -113,7 +123,9 @@ function HeadlineCard({ theme, percent, taken, total }: HeadlineProps) {
       </Text>
       <View style={styles.headlineRow}>
         <Text style={[styles.headlineIcon, { color }]}>{ADHERENCE_TONE_ICONS[tone]}</Text>
-        <Text style={[styles.headlinePercent, { color }]}>{t('analytics.percent', { percent })}</Text>
+        <Text style={[styles.headlinePercent, { color }]}>
+          {t('analytics.percent', { percent })}
+        </Text>
       </View>
       <Text style={[styles.headlineSub, { color: theme.secondary }]}>
         {t('analytics.takenOfTotal', { taken, total })}
@@ -139,7 +151,8 @@ function TrendSection({ theme, days }: { theme: ThemeColors; days: AdherenceDay[
         accessibilityLabel={t('analytics.trendA11y')}
       >
         {days.map((day) => {
-          const pct = day.total_doses > 0 ? Math.round((day.taken_doses / day.total_doses) * 100) : 0;
+          const pct =
+            day.total_doses > 0 ? Math.round((day.taken_doses / day.total_doses) * 100) : 0;
           const color = toneColor(theme, pct);
           const barHeight = Math.max(TREND_BAR_MIN_HEIGHT, (pct / 100) * TREND_BAR_MAX_HEIGHT);
           return (
