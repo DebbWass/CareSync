@@ -7,8 +7,10 @@ Copy everything below the line into a brand-new Claude session started in
 
 You are continuing development of **CareSync**, a production-grade healthcare
 mobile app (Expo/React Native + Supabase) for Alzheimer's/elderly medication
-management. The project is mid-way through a 12-milestone production rebuild;
-milestones M0–M4 are complete and merged.
+management. The project is near the end of a 12-milestone production rebuild:
+**milestones M0–M10 are complete and merged into `develop`**, and **M11
+(offline resilience + release prep)** is in progress — its resilience core and
+several release-prep slices are merged, with the rest user-gated (see below).
 
 ## Before writing any code
 
@@ -59,21 +61,34 @@ milestones M0–M4 are complete and merged.
   migrations are append-only.
 - **Update documentation as you go**: extend `docs/` when features change
   behavior, keep `src/i18n/locales/en.json` complete for any new strings, and
-  **update `PROJECT_HANDOFF.md` (status, completed list, next tasks) at the
-  end of any significant work** — it must always let the next session start
-  cold.
+  **at the end of any significant work update BOTH `PROJECT_HANDOFF.md` (status,
+  completed list, next tasks) AND this `NEXT_SESSION_PROMPT.md` (the "What to do
+  first" section below)** — they must always let the next session start cold and
+  never point at already-finished work.
 
 ## What to do first
 
-1. If the **M9 PR** (`feature/m9-messaging-client` → `develop`) is still
-   open, surface it to the user. Also still pending on the user: the
-   consolidated physical-device validation pass (EAS dev build; reminder
-   loop incl. killed-app cold start; urgent-message flow incl. offline
-   send; Hebrew/RTL; father's device profile: font scale ≥1.3, TalkBack).
-2. Once M9 is merged, the remaining code milestones are **M10 — caregiver
-   analytics** (user checkpoint before adding any chart library) and
-   **M11 — offline resilience + release prep**, per PROJECT_HANDOFF.md.
+All 11 rebuild milestones now have code. What remains in **M11 release-prep** is
+mostly user-gated — do NOT invent lower-value work; confirm scope before starting.
 
-Deliver every milestone the way prior ones were delivered: reviewable
-commits, a PR into `develop` with a completion report in the body, all gates
-green.
+1. Check open PRs (`gh pr list`). The last autonomous slice — **M11 chaos smoke
+   PR #24** (`feature/m11-chaos-smoke` → `develop`, `npm run chaos`) — may still
+   be open; surface it. Merged so far this line of work: M10 (#21), M11 core
+   (#22), M11 runbook + audit triage (#23).
+2. The remaining M11 release-prep items each need user input, so **ask before
+   building**: (a) he/en user manuals (father-specific content + Hebrew copy she
+   approves); (b) EAS production secrets/env + the production build/submit;
+   (c) the full Maestro suite as an automated release gate (needs a device or
+   emulator to validate — don't ship unvalidated flow YAML); (d) flip the
+   `npm audit` CI job to blocking, bundled with the deliberate **Expo SDK bump**
+   (`expo@57`) — see the triage in `docs/runbook.md` §4. Do NOT run
+   `npm audit fix --omit=dev` (it prunes devDependencies and breaks the toolchain).
+3. The one manual gate that unblocks a release stays with the user: the
+   **physical-device validation pass** (EAS dev build) covering the reminder loop
+   incl. killed-app cold start, messaging, Hebrew/RTL, accessibility (font scale
+   ≥1.3, TalkBack, in Hebrew), and the M11 airplane-mode confirm → reconnect →
+   original-tap-time sync — on the father's device profile.
+
+Deliver every milestone the way prior ones were delivered: reviewable commits, a
+PR into `develop` with a completion report in the body, all 8 CI jobs green, and
+the docs (`PROJECT_HANDOFF.md` + this file) updated at the end.
