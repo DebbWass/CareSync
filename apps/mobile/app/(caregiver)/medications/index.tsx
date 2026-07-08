@@ -3,6 +3,7 @@
  * Receives patientId + patientName from route params.
  */
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { forwardChevron } from '../../../src/utils/rtl';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -124,7 +125,7 @@ function MedicationRow({ med, onPress }: { med: Medication; onPress: () => void 
           </Text>
         ) : null}
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={styles.chevron}>{forwardChevron()}</Text>
     </TouchableOpacity>
   );
 }

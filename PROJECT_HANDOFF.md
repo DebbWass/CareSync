@@ -208,8 +208,28 @@ the milestone list below is the durable copy.
       on the hosted stack uses Supabase's built-in SMTP (fine for dev; custom
       SMTP is an M11/production item).
 
-**Test totals on the M7 branch (= develop/M5 + M7):** 120 Jest · 25 Deno ·
-55 pgTAP · 8 CI jobs.
+- [~] **M6 — Hebrew + RTL + language switcher** (feature/m6-hebrew-rtl —
+      CODE COMPLETE, PR open STACKED on the M7 branch; it retargets to
+      develop once #16 merges). Full `he.json` (elderly-simple Hebrew —
+      **user must review every string before merge**); en/he key-parity Jest
+      test (incl. plural-suffix normalization and {{placeholder}} parity);
+      first-ever Settings UI (patient 3rd tab + caregiver header gear):
+      language switcher (device/עברית/English), high-contrast toggle and
+      text-size stepper (store settings existed but had NO UI until now —
+      closed a non-negotiable gap); switching writes settingsStore +
+      users.language (scheduler push copy) + i18n; RTL direction change
+      applies I18nManager.forceRTL immediately and OFFERS a restart
+      (declining is safe — applies next launch); date-fns-based locale-aware
+      date/time helpers (Hebrew = 24h clock, "7 ביולי"); DAY_LABELS →
+      i18n keys, FREQUENCY_LABELS deleted (was test-only); caregiver tab
+      labels localized (were hardcoded); RTL style audit (start/end
+      geometry, direction-aware chevrons/arrows via utils/rtl.ts).
+      **REMAINING (user actions):** review the Hebrew copy in he.json;
+      merge order: #16 first, then the M6 PR; verify RTL flip on a real
+      device (forceRTL needs a dev build, not Expo Go).
+
+**Test totals on the M6 branch (= develop/M5 + M7 + M6):** 125 Jest ·
+25 Deno · 55 pgTAP · 8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
 
@@ -220,13 +240,9 @@ the milestone list below is the durable copy.
       push→tap→confirm end-to-end including killed-app cold start, and the
       father's device-profile checkpoint (font scale, TalkBack). Build must
       include M7 (AuthGuard deep-link fix).
-- [ ] **M6 — Hebrew + RTL + language switcher.** Full `he.json` (elderly-simple
-      Hebrew — user reviews copy); switcher writes settingsStore + `users
-      .language`; `I18nManager.forceRTL` + `Updates.reloadAsync` flow; RTL
-      style audit (marginStart/End, textAlign:'auto', icon flips); localize
-      dates + `DAY_LABELS` (currently English in `src/utils/scheduleUtils.ts`);
-      en/he key-parity test. Files: every screen (styles only), i18n/, layouts.
-      Depends on M5 (so patient screens exist to translate). Complexity: **High**.
+- [ ] **M6 — review tail** (code complete, see Completed section): user
+      reviews all Hebrew copy in `src/i18n/locales/he.json`, merges the M6 PR
+      after #16, and spot-checks the RTL flip on a dev build.
 - [ ] **M7 — merge tail** (code complete, see Completed section): review and
       merge the open M7 PR; spot-check the reset flow end-to-end on the local
       stack (Inbucket at http://127.0.0.1:54324 catches the recovery email).
@@ -264,9 +280,6 @@ the milestone list below is the durable copy.
 
 ### Low priority / cleanup
 
-- [ ] Deduplicate frequency/day labels: `FREQUENCY_LABELS` in
-      `scheduleUtils.ts` now overlaps `schedules.frequency.*` i18n keys —
-      remove the constant after M6 localizes `DAY_LABELS`. **Low**.
 - [ ] Update `CLAUDE.md` (still describes the pre-rebuild "7 phases"; commands
       and schema sections need a refresh; add: read PROJECT_HANDOFF.md first).
       Also refresh `docs/architecture.md`, `docs/api-reference.md`,
@@ -368,25 +381,29 @@ carry rationale comments.
 
 ## Current Development Status
 
-This session: merged promotion PR #13 (M0–M4 → `main`); built and delivered
-M5 (PR #15, since MERGED into develop by the user); built M7 on
-`feature/m7-auth-hardening` (PR #16 open — pulled ahead of M6 because M6
-depended on M5 merging, while M7 was independent). The doc conflict between
-the two PRs was resolved by merging develop into the M7 branch (the M7 side
-of the handoff docs is the superset). PR #16 awaits user review.
+This session: merged promotion PR #13 (M0–M4 → `main`); delivered M5
+(PR #15, MERGED); delivered M7 (`feature/m7-auth-hardening`, PR #16 open,
+CI green, develop merged in after the M5 doc conflict); delivered M6 code
+(`feature/m6-hebrew-rtl`, branched off the M7 branch, PR open against it —
+GitHub retargets it to develop when #16 merges and its branch is deleted).
+Three user gates remain: M7 review, M6 Hebrew-copy review, and the M5
+physical-device validation.
 
 ## Next Recommended Tasks (in order)
 
-1. **User: review + merge PR #16 (M7)** (all 8 CI jobs must be green first).
+1. **User: review + merge PR #16 (M7)**, then the M6 PR (after reviewing
+   every Hebrew string in `src/i18n/locales/he.json` — elderly-simple tone,
+   your call on wording).
 2. **User: EAS dev build** on a physical Android device; validate cron →
    push → tap → fullscreen reminder → confirm → caregiver dashboard update,
    including the killed-app cold-start path (`npm run scheduler:run` against
    the local stack, or the deployed cron). The build must include M7 — its
-   AuthGuard fix is required for the cold-start push→tap path.
+   AuthGuard fix is required for the cold-start push→tap path. While there:
+   flip the language to Hebrew in Settings and confirm the RTL restart.
 3. User checkpoint: demo with father's device profile (font scale ≥1.3,
-   TalkBack spot-check).
-4. Then M6 (Hebrew/RTL) — see roadmap above. Its prerequisites (M5+M7
-   merged, all user-facing strings on `t()`) will then be satisfied.
+   TalkBack spot-check) — in Hebrew.
+4. Then M8+M9 (urgent messaging) — the next code milestone; consider a
+   develop→main promotion once M5–M7 are all validated.
 
 ## Risks — do not break these
 

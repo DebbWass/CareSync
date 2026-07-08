@@ -20,12 +20,7 @@ import {
   useSchedule,
   useUpdateSchedule,
 } from '../../../src/hooks/useSchedules';
-import {
-  DAY_LABELS,
-  formatTimes,
-  isValidDate,
-  isValidTime,
-} from '../../../src/utils/scheduleUtils';
+import { dayLabels, formatTimes, isValidDate, isValidTime } from '../../../src/utils/scheduleUtils';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { normalizeSupabaseError } from '../../../src/services/supabase/errors';
 import { Colors } from '../../../src/constants/colors';
@@ -198,7 +193,7 @@ export default function EditScheduleScreen() {
             <>
               <Text style={styles.fieldLabel}>{t('schedules.edit.daysLabel')}</Text>
               <View style={styles.daysRow}>
-                {DAY_LABELS.map((label, i) => (
+                {dayLabels().map((label, i) => (
                   <TouchableOpacity
                     key={i}
                     style={[styles.dayChip, days.includes(i) && styles.dayChipActive]}
