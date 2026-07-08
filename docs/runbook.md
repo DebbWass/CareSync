@@ -98,15 +98,27 @@ npm run scheduler:run     # exercises the scheduler against the linked stack
 
 ### 3.1 Environment
 
-`apps/mobile/.env.local` (never committed) — points the app at production:
+`apps/mobile/.env.local` (never committed) — points the app at production for
+local runs:
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 ```
 
-EAS builds read these from EAS **environment variables** (dashboard or
-`eas env:create`), not the local file.
+EAS builds do **not** read the local file — register the same two public vars as
+EAS environment variables scoped to `production` (only the anon key ships; the
+service_role key must never be a client env var):
+
+```bash
+cd apps/mobile
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL      --value 'https://<ref>.supabase.co' --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value '<anon key>'                 --visibility sensitive
+```
+
+Signing credentials are managed by EAS (`eas credentials`) — an Android keystore
+and, for iOS, an Apple distribution certificate + provisioning profile. Generate
+or upload them once before the first production build.
 
 ### 3.2 Build profiles (`apps/mobile/eas.json`)
 
