@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
 **Snapshot date:** 2026-07-08
-**Branch state:** `develop` = M0–M9 merged (M5=#15, M7=#16, M6=#18, M8=#19, M9=#20); M10 caregiver analytics on `feature/m10-caregiver-analytics` (PR pending)
-**Overall completion: ~88%** of the production-rebuild scope (M0–M10 code complete; M11 + device validation remain)
+**Branch state:** `develop` = M0–M10 merged (M5=#15, M7=#16, M6=#18, M8=#19, M9=#20, M10=#21); M11 offline-resilience core on `feature/m11-offline-resilience` (PR pending)
+**Overall completion: ~92%** of the production-rebuild scope (M0–M10 done; M11 resilience code complete, M11 release-prep + device validation remain)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -283,7 +283,34 @@ the milestone list below is the durable copy.
       85.7% (18/21). **REMAINING (user):** review/merge the PR; the chart-library
       decision if richer visuals are wanted (deliberately deferred).
 
-**Test totals (develop + M10 branch):** 143 Jest · 31 Deno · 77 pgTAP ·
+- [~] **M11 — Offline resilience** (feature/m11-offline-resilience — CODE
+      COMPLETE for the resilience half; release-prep half remains). Four
+      hardening pieces for a phone in an elderly person's pocket: (1)
+      **onlineManager ← NetInfo** — React Query now pauses queries offline and
+      resumes on reconnect instead of firing into a dead network
+      (`src/lib/onlineManager.ts`, wired in the root layout before any query);
+      (2) **global 401 recovery** — a server-rejected session (password change
+      elsewhere, revoked token, key rotation) surfaces as AppError('auth') and
+      would loop forever; a QueryCache/MutationCache onError signs out once
+      (re-entrancy guarded, only when a session exists) → AuthGuard redirects to
+      login (`src/lib/authRecovery.ts` + `queryClient.ts`); (3) **error
+      boundary** — a render crash no longer unmounts to a blank screen; a
+      localized "Try again" recovery screen re-mounts the subtree (class
+      component, Paper-free; en+he); (4) **offline confirm outbox** — the "I
+      took it" tap is persisted with its tap-time `taken_time` BEFORE the first
+      network attempt and replayed on reconnect, so the audit log records when
+      the patient actually took the dose; `confirmEvent` gained an optional
+      takenTime + a `status <> 'taken'` idempotency guard (replay never clobbers
+      a taken_time), `useConfirmEvent` enqueues on network error (non-network
+      still rolls back), both outboxes ride the one NetInfo flusher. No DB change
+      (uses the existing table + RLS). +7 Jest. **REMAINING (M11 release-prep,
+      largely user-gated):** flip the `npm audit` CI job to blocking (needs the
+      current advisories triaged first); a chaos-test script; Hebrew/English
+      runbook + user manuals; the EAS production build profile (needs real
+      secrets); the full Maestro suite as a release gate. These are the natural
+      contents of a follow-up "M11 release prep" PR.
+
+**Test totals (develop + M11 branch):** 150 Jest · 31 Deno · 77 pgTAP ·
 8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
@@ -301,11 +328,13 @@ the milestone list below is the durable copy.
       and merge the M10 PR. Optional user checkpoint: whether to adopt a chart
       library for richer adherence visuals (the shipped trend is dependency-free
       by design).
-- [ ] **M11 — Offline resilience + release prep.** TanStack onlineManager ←
-      NetInfo; global error boundary; 401 path; offline confirm outbox
-      (record `taken_time` at tap time); flip `npm audit` CI job to blocking;
-      chaos-test script; runbook + user manuals (he/en); EAS production
-      profile; full Maestro suite as release gate. Complexity: **High**.
+- [~] **M11 — Offline resilience + release prep.** Resilience half DONE (see
+      Completed): onlineManager ← NetInfo, global error boundary, 401 path,
+      offline confirm outbox. **Release-prep half REMAINS:** flip `npm audit`
+      CI job to blocking (triage advisories first); chaos-test script; runbook
+      + user manuals (he/en); EAS production profile (real secrets); full
+      Maestro suite as release gate. Complexity: **Medium** (was High; the
+      code-heavy half is landed).
 
 ### Medium priority
 
@@ -422,17 +451,16 @@ carry rationale comments.
 ## Current Development Status
 
 Sessions of 2026-07-07/08 delivered M5 (#15), M7 (#16), M6 (#18 after the
-mis-targeted #17), M8 (#19), M9 (#20) — all MERGED — and the M10 caregiver
-analytics client (`feature/m10-caregiver-analytics`, PR pending). One open
-milestone PR at a time from here on (the doc-conflict lesson). Remaining user
-gates: review/merge the M10 PR and the physical-device validation pass. Only
-M11 (offline resilience + release prep) remains uncoded.
+mis-targeted #17), M8 (#19), M9 (#20), M10 (#21) — all MERGED — and the M11
+offline-resilience core (`feature/m11-offline-resilience`, PR pending). One
+open milestone PR at a time from here on (the doc-conflict lesson). All 11
+milestones now have code; what remains is the M11 release-prep half
+(audit-blocking, chaos script, manuals, EAS prod profile, Maestro release
+gate) and the physical-device validation pass.
 
 ## Next Recommended Tasks (in order)
 
-1. **User: review + merge the M10 PR** (caregiver analytics). Optional decision
-   in the PR: whether to adopt a chart library for richer visuals — the shipped
-   trend is dependency-free by design, so this is a want, not a blocker.
+1. **User: review + merge the M11 PR** (offline-resilience core).
 2. **User: EAS dev build** on a physical Android device; one validation
    pass covering everything shipped: cron → push → tap → fullscreen
    reminder → confirm → caregiver dashboard update incl. killed-app cold
@@ -440,9 +468,11 @@ M11 (offline resilience + release prep) remains uncoded.
    receipt turns "read"; airplane-mode send → reconnect → auto-delivery;
    Hebrew switch + RTL restart in Settings; the new adherence badge/trends
    screen; father's device profile (font scale ≥1.3, TalkBack) — in Hebrew.
-3. Then **M11** (offline resilience + release prep) — the last uncoded
-   milestone. Consider a develop→main promotion once the device validation
-   passes.
+   Also exercise the new resilience layer: airplane-mode confirm → reconnect →
+   the dose syncs with its original tap time.
+3. Then the **M11 release-prep** follow-up PR (audit-blocking, chaos script,
+   he/en manuals, EAS production profile, Maestro release gate). Consider a
+   develop→main promotion once the device validation passes.
 
 ## Risks — do not break these
 
