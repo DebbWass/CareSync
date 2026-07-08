@@ -71,13 +71,15 @@ several release-prep slices are merged, with the rest user-gated (see below).
 All 11 rebuild milestones now have code. What remains in **M11 release-prep** is
 mostly user-gated — do NOT invent lower-value work; confirm scope before starting.
 
-1. Check open PRs (`gh pr list`). The last autonomous slice — **M11 chaos smoke
-   PR #24** (`feature/m11-chaos-smoke` → `develop`, `npm run chaos`) — may still
-   be open; surface it. Merged so far this line of work: M10 (#21), M11 core
-   (#22), M11 runbook + audit triage (#23).
+1. Check open PRs (`gh pr list`). Merged this line of work: M10 (#21), M11 core
+   (#22), M11 runbook + audit triage (#23), M11 chaos smoke (#24, `npm run
+   chaos`). A follow-up branch may carry the English user-guide draft + this
+   file's refresh — surface any open PR.
 2. The remaining M11 release-prep items each need user input, so **ask before
-   building**: (a) he/en user manuals (father-specific content + Hebrew copy she
-   approves); (b) EAS production secrets/env + the production build/submit;
+   building**: (a) the **Hebrew** user manual + personalising the English draft
+   (`docs/user-guide.md` is drafted in English; the owner personalises the
+   patient wording for her father and approves the Hebrew); (b) EAS production
+   secrets/env + the production build/submit;
    (c) the full Maestro suite as an automated release gate (needs a device or
    emulator to validate — don't ship unvalidated flow YAML); (d) flip the
    `npm audit` CI job to blocking, bundled with the deliberate **Expo SDK bump**
