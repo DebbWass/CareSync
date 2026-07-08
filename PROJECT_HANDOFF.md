@@ -330,11 +330,21 @@ the milestone list below is the durable copy.
       by design).
 - [~] **M11 — Offline resilience + release prep.** Resilience half DONE (see
       Completed): onlineManager ← NetInfo, global error boundary, 401 path,
-      offline confirm outbox. **Release-prep half REMAINS:** flip `npm audit`
-      CI job to blocking (triage advisories first); chaos-test script; runbook
-      + user manuals (he/en); EAS production profile (real secrets); full
-      Maestro suite as release gate. Complexity: **Medium** (was High; the
-      code-heavy half is landed).
+      offline confirm outbox. Release-prep started: **`docs/runbook.md`** (the
+      authoritative production deploy + incident runbook) and the **npm audit
+      triage** are done (see below). **Release-prep half STILL REMAINS:**
+      chaos-test script; he/en user manuals; EAS production secrets/env; full
+      Maestro suite as release gate; and the audit-gate flip itself. Complexity:
+      **Medium**.
+      - **npm audit triage (recorded in runbook §4):** the CI Dependency Audit
+        job stays non-blocking on purpose. The remaining high/critical advisories
+        are transitive **build-toolchain** deps (`shell-quote`/`undici` via
+        `@expo/cli`, `ws` via metro/dev-middleware) — not in the shipped bundle.
+        A non-breaking `npm audit fix` clears the critical + one high, but the
+        last `ws` high needs a breaking **Expo SDK bump** (`expo@57`). Flip the
+        gate to blocking (≥ critical) at the next planned SDK upgrade, not as a
+        hotfix. Do NOT run `npm audit fix --omit=dev` — it prunes devDependencies
+        (jest/@types) and breaks the toolchain (verified this session; reverted).
 
 ### Medium priority
 
