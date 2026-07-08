@@ -367,6 +367,23 @@
     "textSizeDecreaseA11y": "הקטנת הטקסט",
     "textSizeIncreaseA11y": "הגדלת הטקסט"
   },
+  "analytics": {
+    "title": "היענות",
+    "windowLabel": "{{days}} הימים האחרונים",
+    "percent": "{{percent}}%",
+    "takenOfTotal": "{{taken}} מתוך {{total}} מנות נלקחו",
+    "headlineA11y": "היענות {{percent}} אחוז. {{taken}} מתוך {{total}} מנות נלקחו ב־{{days}} הימים האחרונים.",
+    "trendHeader": "מגמה יומית",
+    "trendA11y": "מגמת היענות יומית — ניתן לגלול לצדדים כדי לראות כל יום",
+    "dayA11y": "{{date}}: {{percent}} אחוז, {{taken}} מתוך {{total}} נלקחו",
+    "legend": "גובה העמודה מציג את שיעור המנות שנלקחו באותו יום",
+    "empty": "אין עדיין היסטוריית מנות ב־{{days}} הימים האחרונים.",
+    "noData": "—",
+    "badgeA11y": "היענות {{percent}} אחוז",
+    "badgeHint": "הקישו פעמיים כדי לראות פרטי היענות",
+    "badgeLoadingA11y": "טוען נתוני היענות",
+    "badgeNoDataA11y": "אין עדיין נתוני היענות"
+  },
   "tabs": {
     "today": "היום",
     "todayA11y": "היום — תזכורות תרופות נוכחיות",

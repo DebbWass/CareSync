@@ -151,6 +151,10 @@ export default function CaregiverLayout() {
         options={{ href: null, title: t('messages.title') }}
       />
       <Tabs.Screen
+        name="patients/[patientId]"
+        options={{ href: null, title: t('analytics.title') }}
+      />
+      <Tabs.Screen
         name="medications/new"
         options={{ href: null, title: t('medications.form.addTitle') }}
       />
