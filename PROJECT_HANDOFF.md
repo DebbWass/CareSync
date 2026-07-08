@@ -304,10 +304,11 @@ the milestone list below is the durable copy.
       a taken_time), `useConfirmEvent` enqueues on network error (non-network
       still rolls back), both outboxes ride the one NetInfo flusher. No DB change
       (uses the existing table + RLS). +7 Jest. **REMAINING (M11 release-prep,
-      largely user-gated):** flip the `npm audit` CI job to blocking (needs the
-      current advisories triaged first); a chaos-test script; Hebrew/English
-      runbook + user manuals; the EAS production build profile (needs real
-      secrets); the full Maestro suite as a release gate. These are the natural
+      largely user-gated):** flip the `npm audit` CI job to blocking (bundle with
+      the next Expo SDK bump — see the runbook triage); Hebrew/English user
+      manuals; the EAS production build profile (needs real secrets); the full
+      Maestro suite as a release gate. (Runbook + npm audit triage + `npm run
+      chaos` are done.) These are the natural
       contents of a follow-up "M11 release prep" PR.
 
 **Test totals (develop + M11 branch):** 150 Jest · 31 Deno · 77 pgTAP ·
@@ -331,9 +332,12 @@ the milestone list below is the durable copy.
 - [~] **M11 — Offline resilience + release prep.** Resilience half DONE (see
       Completed): onlineManager ← NetInfo, global error boundary, 401 path,
       offline confirm outbox. Release-prep started: **`docs/runbook.md`** (the
-      authoritative production deploy + incident runbook) and the **npm audit
-      triage** are done (see below). **Release-prep half STILL REMAINS:**
-      chaos-test script; he/en user manuals; EAS production secrets/env; full
+      authoritative production deploy + incident runbook), the **npm audit
+      triage** (see below), and **`npm run chaos`** (`scripts/chaos.mjs` —
+      abuses the PostgREST surface to prove idempotent dose generation,
+      audit-log immutability even for service_role, message exactly-once and
+      alert dedup all hold; verified green locally) are done. **Release-prep
+      half STILL REMAINS:** he/en user manuals; EAS production secrets/env; full
       Maestro suite as release gate; and the audit-gate flip itself. Complexity:
       **Medium**.
       - **npm audit triage (recorded in runbook §4):** the CI Dependency Audit

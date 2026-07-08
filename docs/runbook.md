@@ -157,6 +157,10 @@ currently **non-blocking**. Triage as of this release:
 1. All local gates green: `npm run typecheck`, `npm run lint`, `npm test`,
    `npm run db:reset`, `npm run db:test`, and `deno test tests/` in
    `supabase/functions/`.
+1b. `npm run chaos` (against a freshly reset local stack) — the compliance-
+   invariant smoke: idempotent dose generation, audit-log immutability (DELETE
+   and frozen-column UPDATE blocked even for service_role), message exactly-once,
+   and alert dedup all hold under abuse.
 2. CI green on the PR (all 8 jobs).
 3. **Physical-device validation pass** (the one manual gate): reminder loop
    incl. killed-app cold start; confirm → caregiver dashboard update; urgent
@@ -199,5 +203,5 @@ currently **non-blocking**. Triage as of this release:
 - `notifications_sent` counts successful `send-push` **calls**, not confirmed
   device deliveries (Expo receipts are not yet polled).
 - Remaining M11 release-prep not in this runbook's scope: he/en user manuals
-  for the patient/caregiver, a chaos-test script, and the full Maestro suite as
-  an automated release gate.
+  for the patient/caregiver, and the full Maestro suite as an automated release
+  gate. (The chaos smoke — `npm run chaos` — is done; see §5.)
