@@ -114,8 +114,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # Non-blocking for now — flips to blocking in the release-prep milestone.
-      - run: npm audit --omit=dev --audit-level=high || echo "::warning::npm audit found issues (non-blocking until release prep)"
+      # BLOCKING on critical production advisories (M11 release-prep). The
+      # remaining high/moderate are transitive build-toolchain deps (ws via
+      # metro, etc.) not in the shipped bundle — reported but non-blocking until
+      # the next Expo SDK upgrade clears them. See docs/runbook.md §4.
+      - name: Fail on critical production advisories
+        run: npm audit --omit=dev --audit-level=critical
+      - name: Report high/moderate (non-blocking)
+        run: npm audit --omit=dev --audit-level=high || echo "::warning::high/moderate prod advisories remain (transitive build tooling; see runbook §4)"
 
   bundle-smoke:
     name: Bundle Smoke (expo export)

@@ -146,21 +146,22 @@ eas submit --profile production --platform android  # after the build succeeds
 
 ## 4. Dependency-audit posture (triaged M11)
 
-CI runs `npm audit --omit=dev --audit-level=high` (job **Dependency Audit**),
-currently **non-blocking**. Triage as of this release:
+The **Dependency Audit** CI job now **blocks on critical** production advisories
+(`npm audit --omit=dev --audit-level=critical`) and additionally **reports**
+high/moderate non-blocking. Triage as of this release:
 
-- The remaining advisories are **transitive build-toolchain** dependencies
-  pulled in under `expo` / `react-native` / `@expo/cli` / metro (e.g. `ws`,
-  `tar`, `js-yaml`) — they run at build/dev time and are **not shipped in the
-  production app bundle**.
-- A non-breaking `npm audit fix` clears the critical (`shell-quote`) and one
-  high (`undici`); the remaining high (`ws` in the dev bundler) only clears
-  with a **breaking Expo SDK upgrade** (`expo@57`), which is a deliberate,
-  separately-validated change — not a hotfix.
-- **Recommendation:** at the next planned Expo SDK bump, run `npm audit fix`,
-  re-verify the full gate + a device smoke, then flip the CI job to blocking
-  (`--audit-level=critical` at minimum). Until then it stays reporting-only so
-  a transitive dev advisory can't block an unrelated release.
+- A non-breaking `npm audit fix` was applied (lockfile only; `package.json`
+  unchanged), clearing the critical (`shell-quote`) and a high (`undici`). The
+  full gate + a local `expo export` bundle smoke were re-verified green after it.
+- The remaining advisories are **transitive build-toolchain** dependencies under
+  `expo` / `react-native` / metro (e.g. `ws`, `tar`, `js-yaml`) — they run at
+  build/dev time and are **not shipped in the production app bundle**. The last
+  **high** (`ws` in the dev bundler) only clears with a **breaking Expo SDK
+  upgrade** (`expo@57`), a deliberate, separately-validated change — not a hotfix.
+- **Next step:** at the planned Expo SDK bump, run `npm audit fix`, re-verify the
+  full gate + a device smoke, then raise the blocking threshold from `critical`
+  to `high`. Do **not** run `npm audit fix --omit=dev` — it prunes
+  devDependencies (jest/@types) and breaks the toolchain.
 
 ---
 
