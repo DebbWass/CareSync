@@ -79,8 +79,9 @@ describe('confirmEvent', () => {
     mockFrom.mockReset();
   });
 
-  it('sets status=taken with a taken_time timestamp', async () => {
-    const eq = jest.fn().mockResolvedValue({ error: null });
+  it('sets status=taken, guards on status<>taken, and defaults taken_time to now', async () => {
+    const neq = jest.fn().mockResolvedValue({ error: null });
+    const eq = jest.fn().mockReturnValue({ neq });
     const update = jest.fn().mockReturnValue({ eq });
     mockFrom.mockReturnValue({ update });
 
@@ -91,13 +92,28 @@ describe('confirmEvent', () => {
       expect.objectContaining({ status: 'taken', taken_time: expect.any(String) })
     );
     expect(eq).toHaveBeenCalledWith('id', 'evt-1');
+    // Idempotent replay guard: never re-touch an already-taken dose
+    expect(neq).toHaveBeenCalledWith('status', 'taken');
+  });
+
+  it('replays the provided tap time verbatim (offline outbox)', async () => {
+    const neq = jest.fn().mockResolvedValue({ error: null });
+    const update = jest.fn().mockReturnValue({ eq: jest.fn().mockReturnValue({ neq }) });
+    mockFrom.mockReturnValue({ update });
+
+    await confirmEvent('evt-1', '2026-07-08T08:00:00.000Z');
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'taken', taken_time: '2026-07-08T08:00:00.000Z' })
+    );
   });
 
   it('throws AppError when the update fails', async () => {
-    const eq = jest.fn().mockResolvedValue({
+    const neq = jest.fn().mockResolvedValue({
       error: { message: 'Network request failed' },
     });
-    mockFrom.mockReturnValue({ update: jest.fn().mockReturnValue({ eq }) });
+    const update = jest.fn().mockReturnValue({ eq: jest.fn().mockReturnValue({ neq }) });
+    mockFrom.mockReturnValue({ update });
 
     await expect(confirmEvent('evt-1')).rejects.toBeInstanceOf(AppError);
   });

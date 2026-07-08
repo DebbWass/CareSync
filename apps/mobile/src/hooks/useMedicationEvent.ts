@@ -7,6 +7,8 @@ import {
   snoozeEvent,
 } from '../services/supabase/events';
 import { useAuthStore } from '../store/authStore';
+import { useConfirmOutboxStore } from '../store/confirmOutboxStore';
+import { AppError } from '../services/supabase/errors';
 import type { MedicationEvent } from '../types';
 
 // ── Query keys ────────────────────────────────────────────────────────────────
@@ -66,7 +68,22 @@ export function useConfirmEvent() {
   const qc = useQueryClient();
   const patientId = useAuthStore((s) => s.profile?.id);
   return useMutation({
-    mutationFn: (eventId: string) => confirmEvent(eventId),
+    // Capture the tap time up front. If the network is down, durably queue the
+    // confirm (with that tap time) and treat the tap as done — the optimistic
+    // cache stays 'taken' and the outbox syncs on reconnect. Non-network
+    // failures (permission, etc.) still throw so onError rolls the UI back.
+    mutationFn: async (eventId: string) => {
+      const takenTime = new Date().toISOString();
+      try {
+        await confirmEvent(eventId, takenTime);
+      } catch (err) {
+        if (err instanceof AppError && err.code === 'network') {
+          useConfirmOutboxStore.getState().enqueue(eventId, takenTime);
+          return;
+        }
+        throw err;
+      }
+    },
     onMutate: async (eventId): Promise<EventMutationContext> => {
       const pendingKey = eventKeys.pending(patientId ?? '');
       const detailKey = eventKeys.byId(eventId);
