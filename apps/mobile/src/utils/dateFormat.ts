@@ -33,6 +33,17 @@ export function formatDateAtTime(iso: string): string {
     : format(date, "MMM d 'at' h:mm a");
 }
 
+/**
+ * Format a bare patient-local calendar day ("2026-07-07") as "Jul 7" / "7 ביולי".
+ * Parses the parts into a *local* Date so it never shifts across the UTC
+ * boundary the way `new Date('2026-07-07')` (parsed as UTC midnight) would.
+ */
+export function formatShortDay(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return isHebrew() ? format(date, "d 'ב'MMMM", { locale: he }) : format(date, 'MMM d');
+}
+
 /** "Monday July 7, 8:00 PM" (en) / "יום שני, 7 ביולי, 20:00" (he) — a11y reads */
 export function formatLongDateTime(iso: string): string {
   const date = new Date(iso);

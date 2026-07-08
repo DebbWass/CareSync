@@ -363,6 +363,23 @@
     "textSizeDecreaseA11y": "Make text smaller",
     "textSizeIncreaseA11y": "Make text larger"
   },
+  "analytics": {
+    "title": "Adherence",
+    "windowLabel": "LAST {{days}} DAYS",
+    "percent": "{{percent}}%",
+    "takenOfTotal": "{{taken}} of {{total}} doses taken",
+    "headlineA11y": "Adherence {{percent}} percent. {{taken}} of {{total}} doses taken over the last {{days}} days.",
+    "trendHeader": "DAILY TREND",
+    "trendA11y": "Daily adherence trend — scroll sideways to see each day",
+    "dayA11y": "{{date}}: {{percent}} percent, {{taken}} of {{total}} taken",
+    "legend": "Bar height is the share of doses taken that day",
+    "empty": "No dose history yet in the last {{days}} days.",
+    "noData": "—",
+    "badgeA11y": "Adherence {{percent}} percent",
+    "badgeHint": "Double tap to view adherence details",
+    "badgeLoadingA11y": "Loading adherence",
+    "badgeNoDataA11y": "No adherence data yet"
+  },
   "tabs": {
     "today": "Today",
     "todayA11y": "Today — current medication reminders",

@@ -48,8 +48,7 @@ public.users ──< push_tokens  (one row per device)
 | `20260707000001_event_notified_at.sql` | `medication_events.notified_at` (one push per dose) + partial index (M4) |
 | `20260707000002_snooze_event_rpc.sql` | `snooze_event(uuid)` atomic snooze RPC, SECURITY INVOKER (M5) |
 | `20260708000001_messages.sql` | `messages`: idempotent sends, monotonic receipts, RLS, realtime, INSERT webhook → message-push (M8) |
-
-Later milestones append: adherence views (analytics, M10).
+| `20260708000002_adherence_stats.sql` | `adherence_stats(uuid, int)` analytics RPC — patient-local day bucketing, resolved-only denominator, SECURITY INVOKER (M10) |
 
 **Dev loop:** `supabase db reset` re-runs all migrations and applies
 `supabase/seed/seed.sql`. `supabase test db` runs the pgTAP suite in
@@ -194,6 +193,16 @@ never collide in a unique index.)
 The medication must outlive the caregiver account that created it — the
 patient still takes it. Deleting the *patient* cascades everything, which is
 correct.
+
+**Why is adherence a SECURITY INVOKER function instead of a view or a
+SECURITY DEFINER RPC?** `adherence_stats(patient_id, days)` is a thin projection
+over `medication_events`. Running it as INVOKER means the caller's RLS decides
+which rows it can see — a caregiver gets their active patients, a patient gets
+themselves, and an arbitrary id returns no rows. A DEFINER function would have
+to re-implement `is_caregiver_for` access control by hand; INVOKER inherits it
+for free. It buckets by `(scheduled_time AT TIME ZONE users.timezone)::date` so
+a 23:30 local dose lands on the patient's local day, not the UTC day, and counts
+only resolved doses (taken + missed) — a pending dose due tonight is not a miss.
 
 **Why triggers for immutability instead of just "no RLS policy"?**
 RLS does not bind service_role. The audit-log guarantee has to hold even
