@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
 **Snapshot date:** 2026-07-08
-**Branch state:** `develop` = M0–M7 merged (M5=#15, M7=#16, M6=#18 after the mis-targeted #17); M8 data layer on `feature/m8-messaging-data` (PR #19 open)
-**Overall completion: ~70%** of the production-rebuild scope (M0–M8 code complete; M9/M10/M11 + device validation remain)
+**Branch state:** `develop` = M0–M8 merged (M5=#15, M7=#16, M6=#18, M8=#19); M9 messaging client on `feature/m9-messaging-client` (PR open)
+**Overall completion: ~80%** of the production-rebuild scope (M0–M9 code complete; M10/M11 + device validation remain)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -227,8 +227,7 @@ the milestone list below is the durable copy.
       **REMAINING (user action):** verify the RTL flip on a real device
       (forceRTL needs a dev build, not Expo Go).
 
-- [~] **M8 — Urgent messaging: data layer** (feature/m8-messaging-data —
-      CODE COMPLETE, PR open; server-side only, M9 ships the client).
+- [x] **M8 — Urgent messaging: data layer** (PR #19, MERGED).
       `messages` table: pair + sender + body, `UNIQUE(sender_id, client_id)`
       idempotency (offline-outbox retry → 23505-as-success), monotonic
       receipts sent→delivered→read with server-set timestamps
@@ -245,7 +244,25 @@ the milestone list below is the durable copy.
       joins as anon and events are silently withheld. M9's RealtimeProvider
       must do this.
 
-**Test totals (develop + M8 branch):** 125 Jest · 31 Deno · 69 pgTAP ·
+- [~] **M9 — Urgent messaging: client** (feature/m9-messaging-client —
+      CODE COMPLETE, PR open). `messages` service (23505-as-success = the
+      duplicate IS the success), persisted offline outbox (Zustand +
+      AsyncStorage; entry saved with its client_id BEFORE the first network
+      attempt — crash-safe exactly-once; exponential backoff, permanent
+      failures dropped, NetInfo reconnect flush via useOutboxFlusher);
+      RealtimeProvider honoring the verified setAuth rule (re-runs setAuth +
+      resubscribes on every token change; also made the caregiver alert
+      inbox live — closed the backlog item); patient fullscreen popup
+      `app/message/[messageId].tsx` (elderly a11y: one message, one 80dp
+      GOT-IT button; viewing = delivered, acknowledging = read); caregiver
+      thread `(caregiver)/messages/[patientId]` (compose, receipt ticks
+      icon+text never color-only, offline banner, open-marks-read); dashboard
+      patient-card 💬 entry; tap handler + AuthGuard route 'message' deep
+      links; en+he strings (parity-tested). +11 Jest tests.
+      **REMAINING (user):** review/merge the PR; live message flow rides the
+      same physical-device validation pass as M5.
+
+**Test totals (develop + M9 branch):** 136 Jest · 31 Deno · 69 pgTAP ·
 8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
@@ -259,16 +276,9 @@ the milestone list below is the durable copy.
       include M7 (AuthGuard deep-link fix).
 - [ ] **M6 — RTL spot-check** (merged): flip to Hebrew in Settings on a dev
       build and confirm the restart + mirrored layout.
-- [ ] **M9 — Urgent messaging: client.** (M8 data layer is code complete —
-      see Completed.) RealtimeProvider (**must call `realtime.setAuth(token)`
-      before subscribing** — verified live, see scripts/verify-realtime.mjs);
-      persisted offline outbox (Zustand + NetInfo, backoff, 23505-as-success
-      = exactly-once against the M8 unique index); patient fullscreen popup
-      `app/message/[messageId].tsx` (elderly a11y spec); caregiver compose +
-      receipts (recipient marks delivered/read — the M8 trigger enforces
-      order); tap handler adds `data.type === 'message'` routing +
-      `src/types/notifications.ts` payload type. Depends on M6 + M8 merged
-      (needs `t()` strings + the table). Complexity: **High**.
+- [ ] **M9 — review tail** (code complete, see Completed section): review
+      and merge the M9 PR; the live message flow (push → popup → receipt)
+      joins the M5 physical-device validation pass.
 - [ ] **M11 — Offline resilience + release prep.** TanStack onlineManager ←
       NetInfo; global error boundary; 401 path; offline confirm outbox
       (record `taken_time` at tap time); flip `npm audit` CI job to blocking;
@@ -391,24 +401,25 @@ carry rationale comments.
 
 ## Current Development Status
 
-Sessions of 2026-07-07/08 delivered: M5 (PR #15, MERGED), M7 (PR #16,
-MERGED), M6 (MERGED via re-delivery PR #18 — the original #17 went into
-the wrong target), and the M8 messaging data layer
-(`feature/m8-messaging-data`, **PR #19 open**, develop merged in).
-Remaining user gates: review/merge #19 and the M5 physical-device
-validation (now including the Hebrew/RTL spot-check).
+Sessions of 2026-07-07/08 delivered M5 (#15), M7 (#16), M6 (#18 after the
+mis-targeted #17), M8 (#19) — all MERGED — and the M9 messaging client
+(`feature/m9-messaging-client`, PR open). One open milestone PR at a time
+from here on (the doc-conflict lesson). Remaining user gates: review/merge
+the M9 PR and the physical-device validation pass.
 
 ## Next Recommended Tasks (in order)
 
-1. **User: review + merge PR #19** (M8 messaging data layer; server-only).
-2. **User: EAS dev build** on a physical Android device; validate cron →
-   push → tap → fullscreen reminder → confirm → caregiver dashboard update,
-   including the killed-app cold-start path (`npm run scheduler:run` against
-   the local stack, or the deployed cron). While there: flip the language to
-   Hebrew in Settings and confirm the RTL restart, and do the father's
-   device-profile checkpoint (font scale ≥1.3, TalkBack) — in Hebrew.
-3. Then M9 (messaging client) — next code milestone; needs #19 merged.
-   Consider a develop→main promotion once M5–M8 are in and validated.
+1. **User: review + merge the M9 PR** (messaging client).
+2. **User: EAS dev build** on a physical Android device; one validation
+   pass covering everything shipped: cron → push → tap → fullscreen
+   reminder → confirm → caregiver dashboard update incl. killed-app cold
+   start; caregiver sends an urgent message → patient popup → GOT IT →
+   receipt turns "read"; airplane-mode send → reconnect → auto-delivery;
+   Hebrew switch + RTL restart in Settings; father's device profile (font
+   scale ≥1.3, TalkBack) — in Hebrew.
+3. Then M10 (caregiver analytics — user checkpoint before any chart
+   library) and M11 (offline resilience + release prep). Consider a
+   develop→main promotion once the device validation passes.
 
 ## Risks — do not break these
 
