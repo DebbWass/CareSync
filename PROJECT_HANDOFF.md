@@ -303,15 +303,19 @@ the milestone list below is the durable copy.
       takenTime + a `status <> 'taken'` idempotency guard (replay never clobbers
       a taken_time), `useConfirmEvent` enqueues on network error (non-network
       still rolls back), both outboxes ride the one NetInfo flusher. No DB change
-      (uses the existing table + RLS). +7 Jest. **REMAINING (M11 release-prep,
-      largely user-gated):** flip the `npm audit` CI job to blocking (bundle with
-      the next Expo SDK bump — see the runbook triage); **Hebrew** user manual +
-      personalising the English draft (an English draft `docs/user-guide.md`
-      exists — owner reviews/personalises + approves the Hebrew); the EAS
-      production build profile (needs real secrets); the full Maestro suite as a
-      release gate. (Runbook + npm audit triage + `npm run chaos` + the English
-      user-guide draft are done.) These are the natural
-      contents of a follow-up "M11 release prep" PR.
+      (uses the existing table + RLS). +7 Jest. **M11 release-prep is now
+      essentially built:** runbook (`docs/runbook.md`), npm audit triage +
+      **gate flipped to blocking on critical** (non-breaking `npm audit fix`
+      applied; full gate + `expo export` re-verified green), `npm run chaos`
+      smoke, English + **Hebrew** user-guide drafts (`docs/user-guide.md` +
+      `docs/user-guide.he.md`), explicit EAS production store profile + release
+      steps, and the Maestro release suite (`.maestro/README.md` + adherence
+      flow). **What TRULY REMAINS is execution the owner must do:** run the EAS
+      production build/submit (needs real credentials); personalise + approve the
+      user-guide drafts (esp. Hebrew/patient wording); device-validate the
+      Maestro flows; and the Expo SDK 54→57 bump (clears the last `ws` high and
+      lets the audit threshold rise to `high`) — deliberately deferred, needs
+      device validation, NOT a hotfix.
 
 **Test totals (develop + M11 branch):** 150 Jest · 31 Deno · 77 pgTAP ·
 8 CI jobs.
@@ -339,19 +343,23 @@ the milestone list below is the durable copy.
       abuses the PostgREST surface to prove idempotent dose generation,
       audit-log immutability even for service_role, message exactly-once and
       alert dedup all hold; verified green locally) are done. **Release-prep
-      half STILL REMAINS:** Hebrew user manual + personalising the English draft
-      (`docs/user-guide.md` drafted; owner reviews + approves Hebrew); EAS
-      production secrets/env; full Maestro suite as release gate; and the
-      audit-gate flip itself. Complexity: **Medium**.
-      - **npm audit triage (recorded in runbook §4):** the CI Dependency Audit
-        job stays non-blocking on purpose. The remaining high/critical advisories
-        are transitive **build-toolchain** deps (`shell-quote`/`undici` via
-        `@expo/cli`, `ws` via metro/dev-middleware) — not in the shipped bundle.
-        A non-breaking `npm audit fix` clears the critical + one high, but the
-        last `ws` high needs a breaking **Expo SDK bump** (`expo@57`). Flip the
-        gate to blocking (≥ critical) at the next planned SDK upgrade, not as a
-        hotfix. Do NOT run `npm audit fix --omit=dev` — it prunes devDependencies
-        (jest/@types) and breaks the toolchain (verified this session; reverted).
+      half is now essentially built** (runbook, audit triage + gate flip to
+      blocking-on-critical, chaos smoke, English + Hebrew user-guide drafts, EAS
+      store profile + steps, Maestro release suite). What TRULY remains is
+      owner-executed: the EAS production build/submit (real credentials),
+      personalising/approving the user guides, device-validating the Maestro
+      flows, and the Expo SDK 54→57 bump (deferred; needed to raise the audit
+      threshold to `high`). Complexity: **Low** (only execution left).
+      - **npm audit (recorded in runbook §4):** the CI Dependency Audit job now
+        **blocks on critical** (0 after the non-breaking fix) and reports
+        high/moderate. The remaining high/moderate advisories are transitive
+        **build-toolchain** deps (`ws`/`tar`/`js-yaml` via metro/dev-middleware)
+        — not in the shipped bundle. The applied non-breaking `npm audit fix`
+        (lockfile only) cleared the critical + one high; the last `ws` high needs
+        a breaking **Expo SDK bump** (`expo@57`), after which raise the gate
+        threshold from `critical` to `high`. Do NOT run `npm audit fix --omit=dev`
+        — it prunes devDependencies (jest/@types) and breaks the toolchain
+        (verified this session; reverted).
 
 ### Medium priority
 

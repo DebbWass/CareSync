@@ -98,15 +98,27 @@ npm run scheduler:run     # exercises the scheduler against the linked stack
 
 ### 3.1 Environment
 
-`apps/mobile/.env.local` (never committed) — points the app at production:
+`apps/mobile/.env.local` (never committed) — points the app at production for
+local runs:
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 ```
 
-EAS builds read these from EAS **environment variables** (dashboard or
-`eas env:create`), not the local file.
+EAS builds do **not** read the local file — register the same two public vars as
+EAS environment variables scoped to `production` (only the anon key ships; the
+service_role key must never be a client env var):
+
+```bash
+cd apps/mobile
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL      --value 'https://<ref>.supabase.co' --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value '<anon key>'                 --visibility sensitive
+```
+
+Signing credentials are managed by EAS (`eas credentials`) — an Android keystore
+and, for iOS, an Apple distribution certificate + provisioning profile. Generate
+or upload them once before the first production build.
 
 ### 3.2 Build profiles (`apps/mobile/eas.json`)
 
@@ -134,21 +146,22 @@ eas submit --profile production --platform android  # after the build succeeds
 
 ## 4. Dependency-audit posture (triaged M11)
 
-CI runs `npm audit --omit=dev --audit-level=high` (job **Dependency Audit**),
-currently **non-blocking**. Triage as of this release:
+The **Dependency Audit** CI job now **blocks on critical** production advisories
+(`npm audit --omit=dev --audit-level=critical`) and additionally **reports**
+high/moderate non-blocking. Triage as of this release:
 
-- The remaining advisories are **transitive build-toolchain** dependencies
-  pulled in under `expo` / `react-native` / `@expo/cli` / metro (e.g. `ws`,
-  `tar`, `js-yaml`) — they run at build/dev time and are **not shipped in the
-  production app bundle**.
-- A non-breaking `npm audit fix` clears the critical (`shell-quote`) and one
-  high (`undici`); the remaining high (`ws` in the dev bundler) only clears
-  with a **breaking Expo SDK upgrade** (`expo@57`), which is a deliberate,
-  separately-validated change — not a hotfix.
-- **Recommendation:** at the next planned Expo SDK bump, run `npm audit fix`,
-  re-verify the full gate + a device smoke, then flip the CI job to blocking
-  (`--audit-level=critical` at minimum). Until then it stays reporting-only so
-  a transitive dev advisory can't block an unrelated release.
+- A non-breaking `npm audit fix` was applied (lockfile only; `package.json`
+  unchanged), clearing the critical (`shell-quote`) and a high (`undici`). The
+  full gate + a local `expo export` bundle smoke were re-verified green after it.
+- The remaining advisories are **transitive build-toolchain** dependencies under
+  `expo` / `react-native` / metro (e.g. `ws`, `tar`, `js-yaml`) — they run at
+  build/dev time and are **not shipped in the production app bundle**. The last
+  **high** (`ws` in the dev bundler) only clears with a **breaking Expo SDK
+  upgrade** (`expo@57`), a deliberate, separately-validated change — not a hotfix.
+- **Next step:** at the planned Expo SDK bump, run `npm audit fix`, re-verify the
+  full gate + a device smoke, then raise the blocking threshold from `critical`
+  to `high`. Do **not** run `npm audit fix --omit=dev` — it prunes
+  devDependencies (jest/@types) and breaks the toolchain.
 
 ---
 
