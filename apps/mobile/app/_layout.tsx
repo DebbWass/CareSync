@@ -11,10 +11,15 @@ import { useAuthStore } from '../src/store/authStore';
 import { useAuthListener } from '../src/hooks/useAuth';
 import { useOutboxFlusher } from '../src/hooks/useOutbox';
 import { RealtimeProvider } from '../src/components/providers/RealtimeProvider';
+import { ErrorBoundary } from '../src/components/ui/ErrorBoundary';
 import { setupNotificationChannels } from '../src/services/notifications/channels';
 import { queryClient } from '../src/lib/queryClient';
+import { setupOnlineManager } from '../src/lib/onlineManager';
 import { Colors } from '../src/constants/colors';
 import type { NotificationData } from '../src/types/notifications';
+
+// Pause/resume React Query with real connectivity — runs before any query.
+setupOnlineManager();
 
 // Remote push notifications are not supported in Expo Go SDK 53+
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -117,34 +122,36 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider theme={theme}>
-        <AuthGuard isAuthReady={isReady} />
-        <RealtimeProvider />
-        <OutboxFlusher />
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(patient)" />
-          <Stack.Screen name="(caregiver)" />
-          <Stack.Screen
-            name="reminder/[eventId]"
-            options={{
-              presentation: 'fullScreenModal',
-              animation: 'fade',
-            }}
-          />
-          <Stack.Screen
-            name="message/[messageId]"
-            options={{
-              presentation: 'fullScreenModal',
-              animation: 'fade',
-            }}
-          />
-          <Stack.Screen name="reset-password" />
-        </Stack>
-      </PaperProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={theme}>
+          <AuthGuard isAuthReady={isReady} />
+          <RealtimeProvider />
+          <OutboxFlusher />
+          <StatusBar style="auto" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(patient)" />
+            <Stack.Screen name="(caregiver)" />
+            <Stack.Screen
+              name="reminder/[eventId]"
+              options={{
+                presentation: 'fullScreenModal',
+                animation: 'fade',
+              }}
+            />
+            <Stack.Screen
+              name="message/[messageId]"
+              options={{
+                presentation: 'fullScreenModal',
+                animation: 'fade',
+              }}
+            />
+            <Stack.Screen name="reset-password" />
+          </Stack>
+        </PaperProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
