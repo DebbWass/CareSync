@@ -415,6 +415,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adherence_stats: {
+        Args: { p_days?: number; p_patient_id: string }
+        Returns: {
+          bucket_day: string
+          taken_doses: number
+          total_doses: number
+        }[]
+      }
       is_caregiver_for: { Args: { patient: string }; Returns: boolean }
       snooze_event: {
         Args: { p_event_id: string }
