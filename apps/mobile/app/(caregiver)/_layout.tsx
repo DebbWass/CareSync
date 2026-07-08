@@ -147,6 +147,10 @@ export default function CaregiverLayout() {
           as tab buttons of their own — hide them from the tab bar. */}
       <Tabs.Screen name="settings" options={{ href: null, title: t('settings.title') }} />
       <Tabs.Screen
+        name="messages/[patientId]"
+        options={{ href: null, title: t('messages.title') }}
+      />
+      <Tabs.Screen
         name="medications/new"
         options={{ href: null, title: t('medications.form.addTitle') }}
       />

@@ -65,18 +65,14 @@ milestones M0–M4 are complete and merged.
 
 ## What to do first
 
-1. If **PR #19** (M8 messaging data layer) is still open, surface it to the
-   user (M6 landed via PR #18 after the mis-targeted #17). Also still
-   pending on the user: M5 physical-device validation (EAS dev build;
-   cron → push → tap → confirm → caregiver update incl. killed-app cold
-   start; father's device profile: font scale ≥1.3, TalkBack; Hebrew/RTL
-   spot-check via Settings).
-2. Once M8 is merged, the next code milestone is **M9 — messaging
-   client** per the roadmap in PROJECT_HANDOFF.md. Non-negotiable learning
-   from M8's live verification: the RealtimeProvider must call
-   `supabase.realtime.setAuth(accessToken)` before subscribing (and on
-   token refresh), or postgres_changes events are silently withheld under
-   RLS — see scripts/verify-realtime.mjs.
+1. If the **M9 PR** (`feature/m9-messaging-client` → `develop`) is still
+   open, surface it to the user. Also still pending on the user: the
+   consolidated physical-device validation pass (EAS dev build; reminder
+   loop incl. killed-app cold start; urgent-message flow incl. offline
+   send; Hebrew/RTL; father's device profile: font scale ≥1.3, TalkBack).
+2. Once M9 is merged, the remaining code milestones are **M10 — caregiver
+   analytics** (user checkpoint before adding any chart library) and
+   **M11 — offline resilience + release prep**, per PROJECT_HANDOFF.md.
 
 Deliver every milestone the way prior ones were delivered: reviewable
 commits, a PR into `develop` with a completion report in the body, all gates

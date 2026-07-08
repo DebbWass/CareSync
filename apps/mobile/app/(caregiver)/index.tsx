@@ -95,6 +95,12 @@ export default function CaregiverDashboard() {
                   params: { patientId: rel.patient.id, patientName: rel.patient.name },
                 })
               }
+              onPressMessage={() =>
+                router.push({
+                  pathname: '/(caregiver)/messages/[patientId]',
+                  params: { patientId: rel.patient.id, patientName: rel.patient.name },
+                })
+              }
             />
           ))
         )}
@@ -164,9 +170,10 @@ interface PatientCardProps {
   name: string;
   patientId: string;
   onPressMedications: () => void;
+  onPressMessage: () => void;
 }
 
-function PatientCard({ name, onPressMedications }: PatientCardProps) {
+function PatientCard({ name, onPressMedications, onPressMessage }: PatientCardProps) {
   const { t } = useTranslation();
   return (
     <TouchableOpacity
@@ -183,6 +190,15 @@ function PatientCard({ name, onPressMedications }: PatientCardProps) {
         <Text style={styles.patientName}>{name}</Text>
         <Text style={styles.patientSubtext}>{t('dashboard.patientCardSubtext')}</Text>
       </View>
+      <TouchableOpacity
+        style={styles.messageButton}
+        onPress={onPressMessage}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={t('messages.openThreadA11y', { name })}
+      >
+        <Text style={styles.messageButtonIcon}>💬</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 }
@@ -318,6 +334,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  messageButton: {
+    minWidth: 48,
+    minHeight: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.background,
+  },
+  messageButtonIcon: {
+    fontSize: 22,
   },
   patientAvatarText: {
     fontSize: 20,

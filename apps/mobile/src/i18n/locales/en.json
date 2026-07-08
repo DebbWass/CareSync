@@ -316,6 +316,34 @@
       "goBack": "← Go back"
     }
   },
+  "messages": {
+    "title": "Messages",
+    "popupLabel": "URGENT MESSAGE",
+    "fromName": "From {{name}}",
+    "fromCaregiver": "From your caregiver",
+    "bodyA11y": "Message: {{body}}",
+    "acknowledge": "✓ GOT IT",
+    "acknowledgeLabel": "Got it",
+    "acknowledgeHint": "Double tap to confirm you have read this message",
+    "notFoundTitle": "Message not found",
+    "threadWith": "Messages — {{name}}",
+    "openThreadA11y": "Send an urgent message to {{name}}",
+    "outboxPending": "Some messages are waiting for a connection — they will send automatically.",
+    "empty": "No messages yet. Send the first one.",
+    "listA11y": "Message thread",
+    "placeholder": "Type an urgent message…",
+    "placeholderA11y": "Urgent message text",
+    "send": "Send",
+    "sendA11y": "Send urgent message",
+    "queuedOffline": "Waiting for connection",
+    "bubbleMineA11y": "You: {{body}}. {{receipt}}",
+    "bubbleTheirsA11y": "{{name}}: {{body}}",
+    "receipts": {
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read"
+    }
+  },
   "settings": {
     "title": "Settings",
     "tabA11y": "Settings — language and display options",

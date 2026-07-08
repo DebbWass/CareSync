@@ -320,6 +320,34 @@
       "goBack": "חזרה"
     }
   },
+  "messages": {
+    "title": "הודעות",
+    "popupLabel": "הודעה דחופה",
+    "fromName": "מאת {{name}}",
+    "fromCaregiver": "מאת המטפל שלך",
+    "bodyA11y": "הודעה: {{body}}",
+    "acknowledge": "✓ הבנתי",
+    "acknowledgeLabel": "הבנתי",
+    "acknowledgeHint": "הקשה כפולה לאישור שקראת את ההודעה",
+    "notFoundTitle": "ההודעה לא נמצאה",
+    "threadWith": "הודעות — {{name}}",
+    "openThreadA11y": "שליחת הודעה דחופה אל {{name}}",
+    "outboxPending": "חלק מההודעות ממתינות לחיבור — הן יישלחו אוטומטית.",
+    "empty": "אין עדיין הודעות. שלחו את הראשונה.",
+    "listA11y": "שרשור הודעות",
+    "placeholder": "כתבו הודעה דחופה…",
+    "placeholderA11y": "טקסט הודעה דחופה",
+    "send": "שליחה",
+    "sendA11y": "שליחת הודעה דחופה",
+    "queuedOffline": "ממתין לחיבור",
+    "bubbleMineA11y": "אני: {{body}}. {{receipt}}",
+    "bubbleTheirsA11y": "{{name}}: {{body}}",
+    "receipts": {
+      "sent": "נשלח",
+      "delivered": "נמסר",
+      "read": "נקרא"
+    }
+  },
   "settings": {
     "title": "הגדרות",
     "tabA11y": "הגדרות — שפה ותצוגה",
