@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
 **Snapshot date:** 2026-07-08
-**Branch state:** `develop` = M0–M8 merged (M5=#15, M7=#16, M6=#18, M8=#19); M9 messaging client on `feature/m9-messaging-client` (PR open)
-**Overall completion: ~80%** of the production-rebuild scope (M0–M9 code complete; M10/M11 + device validation remain)
+**Branch state:** `develop` = M0–M9 merged (M5=#15, M7=#16, M6=#18, M8=#19, M9=#20); M10 caregiver analytics on `feature/m10-caregiver-analytics` (PR pending)
+**Overall completion: ~88%** of the production-rebuild scope (M0–M10 code complete; M11 + device validation remain)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -244,8 +244,8 @@ the milestone list below is the durable copy.
       joins as anon and events are silently withheld. M9's RealtimeProvider
       must do this.
 
-- [~] **M9 — Urgent messaging: client** (feature/m9-messaging-client —
-      CODE COMPLETE, PR open). `messages` service (23505-as-success = the
+- [x] **M9 — Urgent messaging: client** (PR #20, MERGED). `messages` service
+      (23505-as-success = the
       duplicate IS the success), persisted offline outbox (Zustand +
       AsyncStorage; entry saved with its client_id BEFORE the first network
       attempt — crash-safe exactly-once; exponential backoff, permanent
@@ -259,10 +259,31 @@ the milestone list below is the durable copy.
       icon+text never color-only, offline banner, open-marks-read); dashboard
       patient-card 💬 entry; tap handler + AuthGuard route 'message' deep
       links; en+he strings (parity-tested). +11 Jest tests.
-      **REMAINING (user):** review/merge the PR; live message flow rides the
-      same physical-device validation pass as M5.
+      **REMAINING (user):** live message flow rides the same physical-device
+      validation pass as M5.
 
-**Test totals (develop + M9 branch):** 136 Jest · 31 Deno · 69 pgTAP ·
+- [~] **M10 — Caregiver analytics** (feature/m10-caregiver-analytics — CODE
+      COMPLETE, PR pending). `adherence_stats(patient_id, days)` RPC: buckets
+      resolved doses by `(scheduled_time AT TIME ZONE users.timezone)::date`
+      (patient-local day, so a 23:30 local dose files under the right day, not
+      its UTC day), denominator = taken + missed only (pending/snoozed are
+      unsettled — a dose due tonight is not a miss). SECURITY INVOKER, so RLS
+      constrains it to the caller's patients (arbitrary id → no rows); no new
+      read surface. Client: `analytics` service (getAdherenceStats +
+      summarizeAdherence, whose `percent` is nullable → UI shows "no data", not
+      a misleading 0%), `useAdherence` hook (per-domain key factory), shared
+      `adherenceTone` util (good/fair/poor thresholds + icons, never
+      color-only). UI: dashboard patient-card adherence badge (fetches its own
+      window, links through) + new per-patient trends screen
+      `(caregiver)/patients/[patientId]` — headline % + per-day bar trend built
+      from **plain Views on purpose** (a real chart library stays a UI
+      checkpoint for the owner). `formatShortDay` parses bare YYYY-MM-DD as a
+      local date (no UTC shift). en+he `analytics.*` (parity-tested). 8 pgTAP
+      (incl. the midnight-edge proof) + 7 Jest. Verified against seed →
+      85.7% (18/21). **REMAINING (user):** review/merge the PR; the chart-library
+      decision if richer visuals are wanted (deliberately deferred).
+
+**Test totals (develop + M10 branch):** 143 Jest · 31 Deno · 77 pgTAP ·
 8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
@@ -276,9 +297,10 @@ the milestone list below is the durable copy.
       include M7 (AuthGuard deep-link fix).
 - [ ] **M6 — RTL spot-check** (merged): flip to Hebrew in Settings on a dev
       build and confirm the restart + mirrored layout.
-- [ ] **M9 — review tail** (code complete, see Completed section): review
-      and merge the M9 PR; the live message flow (push → popup → receipt)
-      joins the M5 physical-device validation pass.
+- [ ] **M10 — review tail** (code complete, see Completed section): review
+      and merge the M10 PR. Optional user checkpoint: whether to adopt a chart
+      library for richer adherence visuals (the shipped trend is dependency-free
+      by design).
 - [ ] **M11 — Offline resilience + release prep.** TanStack onlineManager ←
       NetInfo; global error boundary; 401 path; offline confirm outbox
       (record `taken_time` at tap time); flip `npm audit` CI job to blocking;
@@ -287,16 +309,14 @@ the milestone list below is the durable copy.
 
 ### Medium priority
 
-- [ ] **M10 — Caregiver analytics.** `adherence_stats` SQL view/RPC with
-      `AT TIME ZONE users.timezone` day bucketing (midnight-edge pgTAP test);
-      dashboard adherence % + trends; per-patient history screen. User
-      checkpoint before adding any chart library. Complexity: **Medium**.
+- [x] **M10 — Caregiver analytics** (code complete on
+      `feature/m10-caregiver-analytics`; see Completed section). Delivered the
+      `adherence_stats` RPC + dashboard adherence % + per-patient trends screen.
+      A chart library was deliberately NOT added — that remains a user checkpoint.
 - [ ] Add a language-switch Maestro flow (settings → עברית → restart prompt).
       Complexity: **Low**.
-- [ ] Realtime for the caregiver inbox (publications exist since M1; no client
-      subscription yet — currently refetch-on-focus). Arrives naturally with
-      M9's RealtimeProvider (remember `realtime.setAuth`). Complexity: **Low**
-      once M9 lands.
+- [x] Realtime for the caregiver inbox — done in M9's RealtimeProvider (it also
+      subscribes the alert inbox; `realtime.setAuth` honored).
 
 ### Low priority / cleanup
 
@@ -402,24 +422,27 @@ carry rationale comments.
 ## Current Development Status
 
 Sessions of 2026-07-07/08 delivered M5 (#15), M7 (#16), M6 (#18 after the
-mis-targeted #17), M8 (#19) — all MERGED — and the M9 messaging client
-(`feature/m9-messaging-client`, PR open). One open milestone PR at a time
-from here on (the doc-conflict lesson). Remaining user gates: review/merge
-the M9 PR and the physical-device validation pass.
+mis-targeted #17), M8 (#19), M9 (#20) — all MERGED — and the M10 caregiver
+analytics client (`feature/m10-caregiver-analytics`, PR pending). One open
+milestone PR at a time from here on (the doc-conflict lesson). Remaining user
+gates: review/merge the M10 PR and the physical-device validation pass. Only
+M11 (offline resilience + release prep) remains uncoded.
 
 ## Next Recommended Tasks (in order)
 
-1. **User: review + merge the M9 PR** (messaging client).
+1. **User: review + merge the M10 PR** (caregiver analytics). Optional decision
+   in the PR: whether to adopt a chart library for richer visuals — the shipped
+   trend is dependency-free by design, so this is a want, not a blocker.
 2. **User: EAS dev build** on a physical Android device; one validation
    pass covering everything shipped: cron → push → tap → fullscreen
    reminder → confirm → caregiver dashboard update incl. killed-app cold
    start; caregiver sends an urgent message → patient popup → GOT IT →
    receipt turns "read"; airplane-mode send → reconnect → auto-delivery;
-   Hebrew switch + RTL restart in Settings; father's device profile (font
-   scale ≥1.3, TalkBack) — in Hebrew.
-3. Then M10 (caregiver analytics — user checkpoint before any chart
-   library) and M11 (offline resilience + release prep). Consider a
-   develop→main promotion once the device validation passes.
+   Hebrew switch + RTL restart in Settings; the new adherence badge/trends
+   screen; father's device profile (font scale ≥1.3, TalkBack) — in Hebrew.
+3. Then **M11** (offline resilience + release prep) — the last uncoded
+   milestone. Consider a develop→main promotion once the device validation
+   passes.
 
 ## Risks — do not break these
 
