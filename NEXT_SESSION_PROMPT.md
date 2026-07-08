@@ -68,23 +68,23 @@ several release-prep slices are merged, with the rest user-gated (see below).
 
 ## What to do first
 
-All 11 rebuild milestones now have code. What remains in **M11 release-prep** is
-mostly user-gated — do NOT invent lower-value work; confirm scope before starting.
+All 11 rebuild milestones have code, and **M11 release-prep is essentially
+built**. What's left is owner-executed (credentials, a device, personal content)
+— do NOT invent lower-value work; confirm scope before starting.
 
 1. Check open PRs (`gh pr list`). Merged this line of work: M10 (#21), M11 core
-   (#22), M11 runbook + audit triage (#23), M11 chaos smoke (#24, `npm run
-   chaos`). A follow-up branch may carry the English user-guide draft + this
-   file's refresh — surface any open PR.
-2. The remaining M11 release-prep items each need user input, so **ask before
-   building**: (a) the **Hebrew** user manual + personalising the English draft
-   (`docs/user-guide.md` is drafted in English; the owner personalises the
-   patient wording for her father and approves the Hebrew); (b) EAS production
-   secrets/env + the production build/submit;
-   (c) the full Maestro suite as an automated release gate (needs a device or
-   emulator to validate — don't ship unvalidated flow YAML); (d) flip the
-   `npm audit` CI job to blocking, bundled with the deliberate **Expo SDK bump**
-   (`expo@57`) — see the triage in `docs/runbook.md` §4. Do NOT run
-   `npm audit fix --omit=dev` (it prunes devDependencies and breaks the toolchain).
+   (#22), M11 runbook + audit triage (#23), M11 chaos smoke (#24). A later PR
+   carries the English + Hebrew user-guide drafts, the EAS store profile + steps,
+   the Maestro release suite, and the **audit-gate flip to blocking-on-critical**
+   — surface any still-open PR.
+2. What TRULY remains is owner-executed, so **ask/confirm before doing**:
+   (a) personalise + approve the user-guide drafts (`docs/user-guide.md` +
+   `docs/user-guide.he.md`) — esp. the patient/Hebrew wording; (b) the EAS
+   production build/submit (real credentials + `eas credentials` + env vars —
+   runbook §3); (c) device-validate the Maestro release suite (`.maestro/`,
+   needs a dev build); (d) the **Expo SDK 54→57 bump** — deferred; it clears the
+   last `ws` high so the audit gate can rise from `critical` to `high`. Do NOT
+   run `npm audit fix --omit=dev` (prunes devDependencies, breaks the toolchain).
 3. The one manual gate that unblocks a release stays with the user: the
    **physical-device validation pass** (EAS dev build) covering the reminder loop
    incl. killed-app cold start, messaging, Hebrew/RTL, accessibility (font scale
