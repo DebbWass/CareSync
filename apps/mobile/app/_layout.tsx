@@ -9,6 +9,8 @@ import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import '../src/i18n'; // side-effect init — must precede any useTranslation()
 import { useAuthStore } from '../src/store/authStore';
 import { useAuthListener } from '../src/hooks/useAuth';
+import { useOutboxFlusher } from '../src/hooks/useOutbox';
+import { RealtimeProvider } from '../src/components/providers/RealtimeProvider';
 import { setupNotificationChannels } from '../src/services/notifications/channels';
 import { queryClient } from '../src/lib/queryClient';
 import { Colors } from '../src/constants/colors';
@@ -67,9 +69,9 @@ function AuthGuard({ isAuthReady }: { isAuthReady: boolean }) {
     return inAuthGroup ? null : <Redirect href="/(auth)/login" />;
   }
 
-  // Push-notification deep link — valid for a signed-in user of either role;
-  // without this exception the role redirect below would bounce it to home.
-  if (segments[0] === 'reminder') {
+  // Push-notification deep links — valid for a signed-in user of either
+  // role; without this exception the role redirect below would bounce them.
+  if (segments[0] === 'reminder' || segments[0] === 'message') {
     return null;
   }
 
@@ -105,6 +107,10 @@ export default function RootLayout() {
       if (data?.type === 'alert') {
         router.push('/(caregiver)/alerts');
       }
+
+      if (data?.type === 'message' && data.message_id) {
+        router.push(`/message/${data.message_id}`);
+      }
     });
 
     return () => subscription.remove();
@@ -114,6 +120,8 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={theme}>
         <AuthGuard isAuthReady={isReady} />
+        <RealtimeProvider />
+        <OutboxFlusher />
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
@@ -126,9 +134,22 @@ export default function RootLayout() {
               animation: 'fade',
             }}
           />
+          <Stack.Screen
+            name="message/[messageId]"
+            options={{
+              presentation: 'fullScreenModal',
+              animation: 'fade',
+            }}
+          />
           <Stack.Screen name="reset-password" />
         </Stack>
       </PaperProvider>
     </QueryClientProvider>
   );
+}
+
+// Hook host: keeps the outbox NetInfo lifecycle out of RootLayout's own hooks
+function OutboxFlusher() {
+  useOutboxFlusher();
+  return null;
 }
