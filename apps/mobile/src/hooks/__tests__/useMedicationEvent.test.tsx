@@ -11,7 +11,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { eventKeys, useConfirmEvent, useSnoozeEvent } from '../useMedicationEvent';
 import { confirmEvent, snoozeEvent } from '../../services/supabase/events';
+import { AppError } from '../../services/supabase/errors';
 import { useAuthStore } from '../../store/authStore';
+import { useConfirmOutboxStore } from '../../store/confirmOutboxStore';
 import type { MedicationEvent, User } from '../../types';
 
 jest.mock('../../services/supabase/events', () => ({
@@ -79,6 +81,7 @@ beforeEach(() => {
   mockConfirm.mockReset();
   mockSnooze.mockReset();
   useAuthStore.setState({ profile: patientProfile, role: 'patient' });
+  useConfirmOutboxStore.setState({ entries: [], flushing: false });
 });
 
 afterEach(() => {
@@ -119,6 +122,24 @@ describe('useConfirmEvent', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(qc.getQueryData(eventKeys.pending(PATIENT_ID))).toEqual(pendingEvent);
     expect(qc.getQueryData(eventKeys.byId('evt-1'))).toEqual(pendingEvent);
+  });
+
+  it('queues the confirm offline (network error) and still succeeds', async () => {
+    const { qc, wrapper } = setup();
+    mockConfirm.mockRejectedValue(new AppError('network'));
+
+    const { result } = renderHook(() => useConfirmEvent(), { wrapper });
+    act(() => result.current.mutate('evt-1'));
+
+    // The tap is treated as done: mutation succeeds and the optimistic clear stays
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(qc.getQueryData(eventKeys.pending(PATIENT_ID))).toBeNull();
+
+    // Durably queued with a real tap time for later replay
+    const { entries } = useConfirmOutboxStore.getState();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].event_id).toBe('evt-1');
+    expect(entries[0].taken_time).toEqual(expect.any(String));
   });
 });
 

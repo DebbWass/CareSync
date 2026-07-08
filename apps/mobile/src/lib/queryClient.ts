@@ -1,7 +1,20 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
+import { AppError } from '../services/supabase/errors';
+import { handleAuthError } from './authRecovery';
+
+// A server-rejected session surfaces as AppError('auth') on any query or
+// mutation; recover globally (sign out → guard redirects) rather than making
+// every screen handle it. Non-auth errors are left to the screens' ErrorBanner.
+function onGlobalError(error: unknown): void {
+  if (error instanceof AppError && error.code === 'auth') {
+    void handleAuthError();
+  }
+}
 
 // Shared TanStack Query client — configure caching and retry behavior
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: onGlobalError }),
+  mutationCache: new MutationCache({ onError: onGlobalError }),
   defaultOptions: {
     queries: {
       // Data is considered fresh for 30 seconds — reduces redundant refetches

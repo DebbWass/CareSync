@@ -122,7 +122,12 @@
     "samePassword": "The new password must be different from your current one.",
     "rateLimit": "Too many attempts. Please wait a minute and try again.",
     "expiredLink": "This link has expired. Please request a new one.",
-    "retryHint": "Tries to load the information again"
+    "retryHint": "Tries to load the information again",
+    "boundary": {
+      "title": "Something went wrong",
+      "message": "The app ran into a problem. Your medication data is safe. Tap below to continue.",
+      "retry": "Try again"
+    }
   },
   "auth": {
     "login": {

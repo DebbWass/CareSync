@@ -43,15 +43,22 @@ export async function getEventById(eventId: string): Promise<MedicationEvent | n
 /**
  * Mark an event as taken. Records the actual taken timestamp.
  * This is the primary patient action — must succeed reliably.
+ *
+ * `takenTime` lets the offline outbox replay a confirm with the ORIGINAL tap
+ * time (not the reconnect time), keeping the audit log honest. The
+ * `status <> 'taken'` guard makes replay idempotent: a dose already confirmed
+ * (here or on another device) matches zero rows and is left untouched, so a
+ * queued confirm can never clobber an existing taken_time.
  */
-export async function confirmEvent(eventId: string): Promise<void> {
+export async function confirmEvent(eventId: string, takenTime?: string): Promise<void> {
   const { error } = await supabase
     .from('medication_events')
     .update({
       status: 'taken',
-      taken_time: new Date().toISOString(),
+      taken_time: takenTime ?? new Date().toISOString(),
     })
-    .eq('id', eventId);
+    .eq('id', eventId)
+    .neq('status', 'taken');
 
   if (error) throw normalizeSupabaseError(error);
 }
