@@ -47,9 +47,9 @@ public.users ──< push_tokens  (one row per device)
 | `20260701000007_cron_webhooks.sql` | pg_cron job (scheduler every 5 min) + caregiver-alert webhook trigger |
 | `20260707000001_event_notified_at.sql` | `medication_events.notified_at` (one push per dose) + partial index (M4) |
 | `20260707000002_snooze_event_rpc.sql` | `snooze_event(uuid)` atomic snooze RPC, SECURITY INVOKER (M5) |
+| `20260708000001_messages.sql` | `messages`: idempotent sends, monotonic receipts, RLS, realtime, INSERT webhook → message-push (M8) |
 
-Later milestones append: `messages` (urgent messaging, M8) and adherence
-views (analytics, M10).
+Later milestones append: adherence views (analytics, M10).
 
 **Dev loop:** `supabase db reset` re-runs all migrations and applies
 `supabase/seed/seed.sql`. `supabase test db` runs the pgTAP suite in
@@ -129,6 +129,7 @@ key and can only reach rows its policies allow; Edge Functions use
 | medication_events | patient or active caregiver | service_role only | patient (own) | — (never) |
 | alerts | owning caregiver | service_role only | owning caregiver (mark read) | — |
 | push_tokens | self | self | — | self |
+| messages | either side of the pair | sender (active relationship only, no forgery) | recipient (receipts only) | — (never, trigger-blocked) |
 
 `is_caregiver_for(patient UUID)` — SECURITY DEFINER + STABLE — is the single
 point where "active caregiver" is defined (`status = 'active'`; pending and
@@ -144,6 +145,13 @@ revoked relationships grant nothing).
   (`notify_caregiver_alert`) POSTs to the caregiver-alert Edge Function, and
   only for the transitions that matter (became `missed`, or `snooze_count`
   crossed the limit).
+- **Webhook (M8):** an `AFTER INSERT` trigger on `messages`
+  (`notify_message_push`) POSTs to the message-push Edge Function, which
+  pushes `{type:'message', message_id}` (no body, no names — PHI rule) to
+  the recipient. Realtime note: `messages` has `REPLICA IDENTITY FULL` and
+  is in the `supabase_realtime` publication; clients MUST call
+  `realtime.setAuth(token)` before subscribing or RLS silently withholds
+  events (verified live — `npm run verify:realtime`).
 
 Both read two database GUCs **at runtime** (no secrets in migrations):
 

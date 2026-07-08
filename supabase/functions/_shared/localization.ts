@@ -12,7 +12,9 @@ interface NotificationCopy {
   body: string;
 }
 
-const COPY: Record<'reminder' | 'missed' | 'snoozed_limit', Record<NotificationLanguage, NotificationCopy>> = {
+type NotificationKind = 'reminder' | 'missed' | 'snoozed_limit' | 'message';
+
+const COPY: Record<NotificationKind, Record<NotificationLanguage, NotificationCopy>> = {
   reminder: {
     en: {
       title: 'Medication Reminder',
@@ -43,10 +45,20 @@ const COPY: Record<'reminder' | 'missed' | 'snoozed_limit', Record<NotificationL
       body: 'מטופל דחה את תזכורת התרופה יותר מדי פעמים. יש ללחוץ לבדיקה.',
     },
   },
+  message: {
+    en: {
+      title: 'Urgent Message',
+      body: 'You have a new urgent message. Tap to read it.',
+    },
+    he: {
+      title: 'הודעה דחופה',
+      body: 'יש לך הודעה דחופה חדשה. יש ללחוץ לקריאה.',
+    },
+  },
 };
 
 export function notificationCopy(
-  kind: 'reminder' | 'missed' | 'snoozed_limit',
+  kind: NotificationKind,
   language: string | null | undefined
 ): NotificationCopy {
   const lang: NotificationLanguage = language === 'he' ? 'he' : 'en';

@@ -65,17 +65,18 @@ milestones M0–M4 are complete and merged.
 
 ## What to do first
 
-1. If PR #16 (M7) or the M6 PR (`feature/m6-hebrew-rtl`, stacked on the M7
-   branch) is still open, surface them to the user: merge order is #16
-   first, then M6 — and she must review every Hebrew string in
-   `src/i18n/locales/he.json` before the M6 merge. Also still pending on
-   the user: M5 physical-device validation (EAS dev build including M7's
-   AuthGuard fix; cron → push → tap → confirm → caregiver update incl.
-   killed-app cold start; father's device profile: font scale ≥1.3,
-   TalkBack; Hebrew/RTL spot-check via Settings).
-2. Once M5–M7 are merged and validated, the next code milestone is
-   **M8+M9 — urgent patient↔caregiver messaging** per the roadmap in
-   PROJECT_HANDOFF.md (verify postgres_changes delivery WITH RLS early).
+1. If **PR #19** (M8 messaging data layer) is still open, surface it to the
+   user (M6 landed via PR #18 after the mis-targeted #17). Also still
+   pending on the user: M5 physical-device validation (EAS dev build;
+   cron → push → tap → confirm → caregiver update incl. killed-app cold
+   start; father's device profile: font scale ≥1.3, TalkBack; Hebrew/RTL
+   spot-check via Settings).
+2. Once M8 is merged, the next code milestone is **M9 — messaging
+   client** per the roadmap in PROJECT_HANDOFF.md. Non-negotiable learning
+   from M8's live verification: the RealtimeProvider must call
+   `supabase.realtime.setAuth(accessToken)` before subscribing (and on
+   token refresh), or postgres_changes events are silently withheld under
+   RLS — see scripts/verify-realtime.mjs.
 
 Deliver every milestone the way prior ones were delivered: reviewable
 commits, a PR into `develop` with a completion report in the body, all gates

@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
-**Snapshot date:** 2026-07-07 (second session)
-**Branch state:** `develop` = M0–M5 merged (M5 = PR #15); M7 code on `feature/m7-auth-hardening` (PR #16 open, awaiting user review)
-**Overall completion: ~55%** of the production-rebuild scope (M5 merged, M7 code complete; M5 device-validation tail remains)
+**Snapshot date:** 2026-07-08
+**Branch state:** `develop` = M0–M7 merged (M5=#15, M7=#16, M6=#18 after the mis-targeted #17); M8 data layer on `feature/m8-messaging-data` (PR #19 open)
+**Overall completion: ~70%** of the production-rebuild scope (M0–M8 code complete; M9/M10/M11 + device validation remain)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -208,10 +208,10 @@ the milestone list below is the durable copy.
       on the hosted stack uses Supabase's built-in SMTP (fine for dev; custom
       SMTP is an M11/production item).
 
-- [~] **M6 — Hebrew + RTL + language switcher** (feature/m6-hebrew-rtl —
-      CODE COMPLETE, PR open STACKED on the M7 branch; it retargets to
-      develop once #16 merges). Full `he.json` (elderly-simple Hebrew —
-      **user must review every string before merge**); en/he key-parity Jest
+- [x] **M6 — Hebrew + RTL + language switcher** (MERGED via PR #18; the
+      original #17 was merged into the wrong target — the already-merged M7
+      branch — and never reached develop). Full `he.json` (elderly-simple
+      Hebrew); en/he key-parity Jest
       test (incl. plural-suffix normalization and {{placeholder}} parity);
       first-ever Settings UI (patient 3rd tab + caregiver header gear):
       language switcher (device/עברית/English), high-contrast toggle and
@@ -224,12 +224,29 @@ the milestone list below is the durable copy.
       i18n keys, FREQUENCY_LABELS deleted (was test-only); caregiver tab
       labels localized (were hardcoded); RTL style audit (start/end
       geometry, direction-aware chevrons/arrows via utils/rtl.ts).
-      **REMAINING (user actions):** review the Hebrew copy in he.json;
-      merge order: #16 first, then the M6 PR; verify RTL flip on a real
-      device (forceRTL needs a dev build, not Expo Go).
+      **REMAINING (user action):** verify the RTL flip on a real device
+      (forceRTL needs a dev build, not Expo Go).
 
-**Test totals on the M6 branch (= develop/M5 + M7 + M6):** 125 Jest ·
-25 Deno · 55 pgTAP · 8 CI jobs.
+- [~] **M8 — Urgent messaging: data layer** (feature/m8-messaging-data —
+      CODE COMPLETE, PR open; server-side only, M9 ships the client).
+      `messages` table: pair + sender + body, `UNIQUE(sender_id, client_id)`
+      idempotency (offline-outbox retry → 23505-as-success), monotonic
+      receipts sent→delivered→read with server-set timestamps
+      (trigger-enforced; read implies delivered), body/identity immutable,
+      DELETE blocked even for service_role. RLS: active-relationship-only
+      sending, no sender forgery, recipient-only receipts. Realtime
+      publication + REPLICA IDENTITY FULL. AFTER INSERT webhook →
+      message-push Edge Fn (localized, NO-PHI push: {type:'message',
+      message_id}; patient recipients get the MAX 'medications' channel).
+      14 pgTAP + 6 Deno tests. **Critical M9 gotcha VERIFIED LIVE**
+      (`npm run verify:realtime`): postgres_changes DOES deliver to
+      RLS-constrained users, BUT ONLY if the client calls
+      `realtime.setAuth(token)` before subscribing — without it the socket
+      joins as anon and events are silently withheld. M9's RealtimeProvider
+      must do this.
+
+**Test totals (develop + M8 branch):** 125 Jest · 31 Deno · 69 pgTAP ·
+8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
 
@@ -240,21 +257,18 @@ the milestone list below is the durable copy.
       push→tap→confirm end-to-end including killed-app cold start, and the
       father's device-profile checkpoint (font scale, TalkBack). Build must
       include M7 (AuthGuard deep-link fix).
-- [ ] **M6 — review tail** (code complete, see Completed section): user
-      reviews all Hebrew copy in `src/i18n/locales/he.json`, merges the M6 PR
-      after #16, and spot-checks the RTL flip on a dev build.
-- [ ] **M7 — merge tail** (code complete, see Completed section): review and
-      merge the open M7 PR; spot-check the reset flow end-to-end on the local
-      stack (Inbucket at http://127.0.0.1:54324 catches the recovery email).
-- [ ] **M8+M9 — Urgent patient↔caregiver messaging.** New `messages` table
-      (client_id idempotency, monotonic sent→delivered→read trigger, RLS,
-      realtime publication, INSERT webhook → new message-push Edge Fn);
-      RealtimeProvider; persisted offline outbox (Zustand + NetInfo, backoff,
-      23505-as-success = exactly-once); patient fullscreen popup
-      `app/message/[messageId].tsx`; caregiver compose + receipts. The design
-      is fully specified in the approved plan. Complexity: **High**.
-      Critical gotcha to verify early: postgres_changes delivery WITH RLS
-      enabled.
+- [ ] **M6 — RTL spot-check** (merged): flip to Hebrew in Settings on a dev
+      build and confirm the restart + mirrored layout.
+- [ ] **M9 — Urgent messaging: client.** (M8 data layer is code complete —
+      see Completed.) RealtimeProvider (**must call `realtime.setAuth(token)`
+      before subscribing** — verified live, see scripts/verify-realtime.mjs);
+      persisted offline outbox (Zustand + NetInfo, backoff, 23505-as-success
+      = exactly-once against the M8 unique index); patient fullscreen popup
+      `app/message/[messageId].tsx` (elderly a11y spec); caregiver compose +
+      receipts (recipient marks delivered/read — the M8 trigger enforces
+      order); tap handler adds `data.type === 'message'` routing +
+      `src/types/notifications.ts` payload type. Depends on M6 + M8 merged
+      (needs `t()` strings + the table). Complexity: **High**.
 - [ ] **M11 — Offline resilience + release prep.** TanStack onlineManager ←
       NetInfo; global error boundary; 401 path; offline confirm outbox
       (record `taken_time` at tap time); flip `npm audit` CI job to blocking;
@@ -267,16 +281,12 @@ the milestone list below is the durable copy.
       `AT TIME ZONE users.timezone` day bucketing (midnight-edge pgTAP test);
       dashboard adherence % + trends; per-patient history screen. User
       checkpoint before adding any chart library. Complexity: **Medium**.
-- [ ] Refresh Maestro flows against current screen text (audit found at least
-      one stale button label) and add reminder-confirm + language-switch flows.
+- [ ] Add a language-switch Maestro flow (settings → עברית → restart prompt).
       Complexity: **Low**.
-- [ ] Profile-bootstrap resilience: `useAuth` signs the user out if
-      `getProfile` returns null; a slow `handle_new_user` trigger right after
-      signup could bounce a fresh user. Add a short retry. Files:
-      `src/hooks/useAuth.ts`. Complexity: **Low**.
 - [ ] Realtime for the caregiver inbox (publications exist since M1; no client
       subscription yet — currently refetch-on-focus). Arrives naturally with
-      M9's RealtimeProvider. Complexity: **Low** once M9 lands.
+      M9's RealtimeProvider (remember `realtime.setAuth`). Complexity: **Low**
+      once M9 lands.
 
 ### Low priority / cleanup
 
@@ -381,29 +391,24 @@ carry rationale comments.
 
 ## Current Development Status
 
-This session: merged promotion PR #13 (M0–M4 → `main`); delivered M5
-(PR #15, MERGED); delivered M7 (`feature/m7-auth-hardening`, PR #16 open,
-CI green, develop merged in after the M5 doc conflict); delivered M6 code
-(`feature/m6-hebrew-rtl`, branched off the M7 branch, PR open against it —
-GitHub retargets it to develop when #16 merges and its branch is deleted).
-Three user gates remain: M7 review, M6 Hebrew-copy review, and the M5
-physical-device validation.
+Sessions of 2026-07-07/08 delivered: M5 (PR #15, MERGED), M7 (PR #16,
+MERGED), M6 (MERGED via re-delivery PR #18 — the original #17 went into
+the wrong target), and the M8 messaging data layer
+(`feature/m8-messaging-data`, **PR #19 open**, develop merged in).
+Remaining user gates: review/merge #19 and the M5 physical-device
+validation (now including the Hebrew/RTL spot-check).
 
 ## Next Recommended Tasks (in order)
 
-1. **User: review + merge PR #16 (M7)**, then the M6 PR (after reviewing
-   every Hebrew string in `src/i18n/locales/he.json` — elderly-simple tone,
-   your call on wording).
+1. **User: review + merge PR #19** (M8 messaging data layer; server-only).
 2. **User: EAS dev build** on a physical Android device; validate cron →
    push → tap → fullscreen reminder → confirm → caregiver dashboard update,
    including the killed-app cold-start path (`npm run scheduler:run` against
-   the local stack, or the deployed cron). The build must include M7 — its
-   AuthGuard fix is required for the cold-start push→tap path. While there:
-   flip the language to Hebrew in Settings and confirm the RTL restart.
-3. User checkpoint: demo with father's device profile (font scale ≥1.3,
-   TalkBack spot-check) — in Hebrew.
-4. Then M8+M9 (urgent messaging) — the next code milestone; consider a
-   develop→main promotion once M5–M7 are all validated.
+   the local stack, or the deployed cron). While there: flip the language to
+   Hebrew in Settings and confirm the RTL restart, and do the father's
+   device-profile checkpoint (font scale ≥1.3, TalkBack) — in Hebrew.
+3. Then M9 (messaging client) — next code milestone; needs #19 merged.
+   Consider a develop→main promotion once M5–M8 are in and validated.
 
 ## Risks — do not break these
 
