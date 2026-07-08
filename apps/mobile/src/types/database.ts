@@ -242,6 +242,67 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          body: string
+          caregiver_id: string
+          client_id: string
+          created_at: string
+          delivered_at: string | null
+          id: string
+          patient_id: string
+          read_at: string | null
+          sender_id: string
+          status: Database["public"]["Enums"]["message_status"]
+        }
+        Insert: {
+          body: string
+          caregiver_id: string
+          client_id: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          patient_id: string
+          read_at?: string | null
+          sender_id: string
+          status?: Database["public"]["Enums"]["message_status"]
+        }
+        Update: {
+          body?: string
+          caregiver_id?: string
+          client_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          patient_id?: string
+          read_at?: string | null
+          sender_id?: string
+          status?: Database["public"]["Enums"]["message_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_caregiver_relationships: {
         Row: {
           caregiver_id: string
@@ -391,6 +452,7 @@ export type Database = {
         | "three_times_daily"
         | "weekly"
         | "custom"
+      message_status: "sent" | "delivered" | "read"
       push_platform: "ios" | "android"
       relationship_status: "pending" | "active" | "revoked"
       user_role: "patient" | "caregiver"
@@ -538,6 +600,7 @@ export const Constants = {
         "weekly",
         "custom",
       ],
+      message_status: ["sent", "delivered", "read"],
       push_platform: ["ios", "android"],
       relationship_status: ["pending", "active", "revoked"],
       user_role: ["patient", "caregiver"],
