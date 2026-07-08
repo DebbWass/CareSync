@@ -136,3 +136,6 @@ After signing in you land on the **Dashboard**:
   this guide is drafted in English first).
 - Decide on distribution: printed one-pager for the patient vs. in-app help vs.
   a shared document for family caregivers.
+
+> **Hebrew translation:** a draft lives in [`docs/user-guide.he.md`](user-guide.he.md) —
+> review and approve it before use.
