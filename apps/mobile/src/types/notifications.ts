@@ -1,6 +1,6 @@
 // Push notification payload types — PHI must NEVER appear in these payloads
 
-export type NotificationType = 'reminder' | 'alert';
+export type NotificationType = 'reminder' | 'alert' | 'message';
 
 export interface ReminderNotificationData {
   type: 'reminder';
@@ -13,4 +13,10 @@ export interface AlertNotificationData {
   patient_id: string; // For routing to the correct patient's data
 }
 
-export type NotificationData = ReminderNotificationData | AlertNotificationData;
+export interface MessageNotificationData {
+  type: 'message';
+  message_id: string; // UUID — body/sender load in-app after tap (no PHI)
+}
+
+export type NotificationData =
+  ReminderNotificationData | AlertNotificationData | MessageNotificationData;

@@ -91,6 +91,25 @@ export interface PushToken {
   created_at: string;
 }
 
+export type MessageStatus = 'sent' | 'delivered' | 'read';
+
+export interface Message {
+  id: string;
+  patient_id: string;
+  caregiver_id: string;
+  sender_id: string;
+  body: string;
+  // Client-generated idempotency key — the offline outbox retries with the
+  // same value and treats the resulting 23505 as success (exactly-once)
+  client_id: string;
+  status: MessageStatus;
+  delivered_at?: string;
+  read_at?: string;
+  created_at: string;
+  // Joined data (explicit FK hint — messages has three FKs to users)
+  sender?: Pick<User, 'name'>;
+}
+
 // Adherence stats (computed client-side or via query)
 export interface AdherenceStats {
   total: number;
