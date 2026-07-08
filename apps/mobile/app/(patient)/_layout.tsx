@@ -92,6 +92,16 @@ export default function PatientLayout() {
           tabBarAccessibilityLabel: t('tabs.historyA11y'),
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: t('tabs.settings'),
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cog-outline" color={color} size={size} />
+          ),
+          tabBarAccessibilityLabel: t('settings.tabA11y'),
+        }}
+      />
     </Tabs>
   );
 }

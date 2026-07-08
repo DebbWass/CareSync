@@ -116,6 +116,16 @@ export async function restoreSessionFromRecoveryUrl(url: string): Promise<boolea
   return true;
 }
 
+/**
+ * Persist the user's language on their profile. The scheduler reads
+ * users.language to localize push-notification copy, so this must track the
+ * app language — otherwise reminders arrive in the wrong language.
+ */
+export async function updateUserLanguage(userId: string, language: 'he' | 'en') {
+  const { error } = await supabase.from('users').update({ language }).eq('id', userId);
+  if (error) throw normalizeSupabaseError(error);
+}
+
 // ── Profile bootstrap ─────────────────────────────────────────────────────────
 
 /**

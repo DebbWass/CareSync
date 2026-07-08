@@ -260,6 +260,16 @@
     "unknownMedication": "Unknown",
     "dateOngoing": "From {{start}} (ongoing)",
     "dateRange": "From {{start}} to {{end}}",
+    "everyDay": "Every day",
+    "days": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
     "frequency": {
       "daily": "Daily",
       "twice_daily": "Twice daily",
@@ -306,15 +316,40 @@
       "goBack": "← Go back"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "tabA11y": "Settings — language and display options",
+    "openA11y": "Open settings",
+    "languageTitle": "Language",
+    "languageGroupA11y": "Choose app language",
+    "languageDevice": "Device language",
+    "languageChangeFailed": "The language changed on this device, but could not be saved to your account. It will still be used here.",
+    "rtlRestartTitle": "Restart needed",
+    "rtlRestartMessage": "Switching between Hebrew and English changes the screen direction. The app will restart to apply it.",
+    "rtlRestartConfirm": "Restart now",
+    "displayTitle": "Display",
+    "highContrast": "High contrast",
+    "highContrastHint": "Stronger colors on a dark background for easier reading",
+    "textSize": "Text size",
+    "textSizeValue": "{{percent}}%",
+    "textSizeDecreaseA11y": "Make text smaller",
+    "textSizeIncreaseA11y": "Make text larger"
+  },
   "tabs": {
     "today": "Today",
     "todayA11y": "Today — current medication reminders",
     "history": "History",
     "historyA11y": "History — past medication events",
     "dashboard": "Dashboard",
+    "dashboardA11y": "Dashboard — patient adherence overview",
     "medications": "Medications",
+    "medicationsA11y": "Medications — manage patient medications",
     "schedules": "Schedules",
+    "schedulesA11y": "Schedules — define medication timings",
     "patients": "Patients",
-    "alerts": "Alerts"
+    "patientsA11y": "Patients — manage your linked patients",
+    "alerts": "Alerts",
+    "alertsA11y": "Alerts — missed medication notifications",
+    "settings": "Settings"
   }
 }

@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
-**Snapshot date:** 2026-07-07 (second session)
-**Branch state:** `develop` = M0–M5 merged (M5 = PR #15); M7 code on `feature/m7-auth-hardening` (PR #16 open, awaiting user review)
-**Overall completion: ~55%** of the production-rebuild scope (M5 merged, M7 code complete; M5 device-validation tail remains)
+**Snapshot date:** 2026-07-08
+**Branch state:** `develop` = M0–M7 merged (M5=#15, M7=#16, M6=#18 after the mis-targeted #17); M8 data layer on `feature/m8-messaging-data` (PR #19 open)
+**Overall completion: ~70%** of the production-rebuild scope (M0–M8 code complete; M9/M10/M11 + device validation remain)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -208,10 +208,10 @@ the milestone list below is the durable copy.
       on the hosted stack uses Supabase's built-in SMTP (fine for dev; custom
       SMTP is an M11/production item).
 
-- [~] **M6 — Hebrew + RTL + language switcher** (feature/m6-hebrew-rtl —
-      CODE COMPLETE, PR open STACKED on the M7 branch; it retargets to
-      develop once #16 merges). Full `he.json` (elderly-simple Hebrew —
-      **user must review every string before merge**); en/he key-parity Jest
+- [x] **M6 — Hebrew + RTL + language switcher** (MERGED via PR #18; the
+      original #17 was merged into the wrong target — the already-merged M7
+      branch — and never reached develop). Full `he.json` (elderly-simple
+      Hebrew); en/he key-parity Jest
       test (incl. plural-suffix normalization and {{placeholder}} parity);
       first-ever Settings UI (patient 3rd tab + caregiver header gear):
       language switcher (device/עברית/English), high-contrast toggle and
@@ -224,12 +224,8 @@ the milestone list below is the durable copy.
       i18n keys, FREQUENCY_LABELS deleted (was test-only); caregiver tab
       labels localized (were hardcoded); RTL style audit (start/end
       geometry, direction-aware chevrons/arrows via utils/rtl.ts).
-      **REMAINING (user actions):** review the Hebrew copy in he.json;
-      merge order: #16 first, then the M6 PR; verify RTL flip on a real
-      device (forceRTL needs a dev build, not Expo Go).
-      **UPDATE:** #16 merged, but #17 was merged AFTER it into the
-      already-merged M7 branch — M6 never reached develop. Re-delivered as
-      PR #18 (same commits, base=develop, CI 8/8 green). Merge #18.
+      **REMAINING (user action):** verify the RTL flip on a real device
+      (forceRTL needs a dev build, not Expo Go).
 
 - [~] **M8 — Urgent messaging: data layer** (feature/m8-messaging-data —
       CODE COMPLETE, PR open; server-side only, M9 ships the client).
@@ -249,8 +245,8 @@ the milestone list below is the durable copy.
       joins as anon and events are silently withheld. M9's RealtimeProvider
       must do this.
 
-**Test totals across open branches:** M6 branch 125 Jest; M8 branch
-120 Jest · 31 Deno · 69 pgTAP. 8 CI jobs green everywhere.
+**Test totals (develop + M8 branch):** 125 Jest · 31 Deno · 69 pgTAP ·
+8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
 
@@ -261,9 +257,8 @@ the milestone list below is the durable copy.
       push→tap→confirm end-to-end including killed-app cold start, and the
       father's device-profile checkpoint (font scale, TalkBack). Build must
       include M7 (AuthGuard deep-link fix).
-- [ ] **M6 — review tail** (code complete, see Completed section): user
-      reviews all Hebrew copy in `src/i18n/locales/he.json`, merges **PR #18**
-      (the develop re-delivery), and spot-checks the RTL flip on a dev build.
+- [ ] **M6 — RTL spot-check** (merged): flip to Hebrew in Settings on a dev
+      build and confirm the restart + mirrored layout.
 - [ ] **M9 — Urgent messaging: client.** (M8 data layer is code complete —
       see Completed.) RealtimeProvider (**must call `realtime.setAuth(token)`
       before subscribing** — verified live, see scripts/verify-realtime.mjs);
@@ -397,25 +392,22 @@ carry rationale comments.
 ## Current Development Status
 
 Sessions of 2026-07-07/08 delivered: M5 (PR #15, MERGED), M7 (PR #16,
-MERGED), M6 (PR #17 was merged into the wrong target — the already-merged
-M7 branch — so it never reached develop; re-delivered as **PR #18**, base
-develop, CI 8/8 green, awaiting Hebrew review), and M8 messaging data layer
-(`feature/m8-messaging-data`, PR open). Remaining user gates: merge #18
-(Hebrew review), review the M8 PR, and the M5 physical-device validation.
+MERGED), M6 (MERGED via re-delivery PR #18 — the original #17 went into
+the wrong target), and the M8 messaging data layer
+(`feature/m8-messaging-data`, **PR #19 open**, develop merged in).
+Remaining user gates: review/merge #19 and the M5 physical-device
+validation (now including the Hebrew/RTL spot-check).
 
 ## Next Recommended Tasks (in order)
 
-1. **User: merge PR #18 (M6)** after reviewing every Hebrew string in
-   `src/i18n/locales/he.json` (same content as the mis-targeted #17 — if you
-   already reviewed there, straight merge).
-2. **User: review + merge the M8 PR** (messaging data layer; server-only).
-3. **User: EAS dev build** on a physical Android device; validate cron →
+1. **User: review + merge PR #19** (M8 messaging data layer; server-only).
+2. **User: EAS dev build** on a physical Android device; validate cron →
    push → tap → fullscreen reminder → confirm → caregiver dashboard update,
    including the killed-app cold-start path (`npm run scheduler:run` against
    the local stack, or the deployed cron). While there: flip the language to
    Hebrew in Settings and confirm the RTL restart, and do the father's
    device-profile checkpoint (font scale ≥1.3, TalkBack) — in Hebrew.
-4. Then M9 (messaging client) — next code milestone; needs M6+M8 merged.
+3. Then M9 (messaging client) — next code milestone; needs #19 merged.
    Consider a develop→main promotion once M5–M8 are in and validated.
 
 ## Risks — do not break these

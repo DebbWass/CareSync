@@ -3,6 +3,7 @@
  * Serves as the navigation hub for the caregiver side of the app.
  */
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { forwardArrow } from '../../src/utils/rtl';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -197,7 +198,9 @@ function EmptyCard({ message, action, onPress }: EmptyCardProps) {
     <View style={styles.emptyCard}>
       <Text style={styles.emptyText}>{message}</Text>
       <TouchableOpacity onPress={onPress} accessibilityRole="button">
-        <Text style={styles.emptyAction}>{action} →</Text>
+        <Text style={styles.emptyAction}>
+          {action} {forwardArrow()}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -268,7 +271,7 @@ const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
     top: 2,
-    right: 2,
+    end: 2,
     backgroundColor: Colors.light.danger,
     borderRadius: 10,
     minWidth: 20,

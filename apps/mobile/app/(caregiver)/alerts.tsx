@@ -5,7 +5,7 @@
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { format } from 'date-fns';
+import { formatDateAtTime, formatShortDate } from '../../src/utils/dateFormat';
 import { useTranslation } from 'react-i18next';
 import { useAlerts, useMarkAlertRead, useMarkAllAlertsRead } from '../../src/hooks/useAlerts';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
@@ -129,10 +129,10 @@ function AlertRow({ alert, onMarkRead, isMarkingRead }: AlertRowProps) {
         t('alerts.forPatient', { name: patientName }),
         scheduledTime
           ? t('alerts.scheduledA11y', {
-              time: format(new Date(scheduledTime), "MMM d 'at' h:mm a"),
+              time: formatDateAtTime(scheduledTime),
             })
           : '',
-        format(new Date(alert.created_at), 'MMM d'),
+        formatShortDate(alert.created_at),
       ]
         .filter(Boolean)
         .join(', ')}
@@ -149,13 +149,11 @@ function AlertRow({ alert, onMarkRead, isMarkingRead }: AlertRowProps) {
         {scheduledTime ? (
           <Text style={styles.time}>
             {t('alerts.scheduledAt', {
-              time: format(new Date(scheduledTime), "MMM d 'at' h:mm a"),
+              time: formatDateAtTime(scheduledTime),
             })}
           </Text>
         ) : null}
-        <Text style={styles.createdAt}>
-          {format(new Date(alert.created_at), "MMM d 'at' h:mm a")}
-        </Text>
+        <Text style={styles.createdAt}>{formatDateAtTime(alert.created_at)}</Text>
       </View>
 
       {/* Unread dot / mark read */}

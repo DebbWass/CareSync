@@ -6,7 +6,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
+import { formatDateAtTime, formatLongDateTime, formatTime } from '../../src/utils/dateFormat';
 import { Text } from '../../src/components/ui/Text';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { useEventHistory } from '../../src/hooks/useMedicationEvent';
@@ -59,10 +59,10 @@ export default function PatientHistory() {
         accessibilityLabel={[
           item.medications?.name ?? t('patient.reminder.unknownMedication'),
           statusLabel,
-          format(new Date(item.scheduled_time), 'EEEE MMMM d, h:mm a'),
+          formatLongDateTime(item.scheduled_time),
           item.taken_time
             ? t('patient.history.takenAtA11y', {
-                time: format(new Date(item.taken_time), 'h:mm a'),
+                time: formatTime(item.taken_time),
               })
             : '',
         ]
@@ -93,14 +93,14 @@ export default function PatientHistory() {
 
           <Text size={14} color={theme.secondary} style={styles.time}>
             {t('patient.history.scheduledAt', {
-              time: format(new Date(item.scheduled_time), 'MMM d, h:mm a'),
+              time: formatDateAtTime(item.scheduled_time),
             })}
           </Text>
 
           {item.taken_time ? (
             <Text size={14} color={theme.confirm} style={styles.time}>
               {t('patient.history.takenAt', {
-                time: format(new Date(item.taken_time), 'h:mm a'),
+                time: formatTime(item.taken_time),
               })}
             </Text>
           ) : null}
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     paddingVertical: 8,
-    paddingRight: 16,
+    paddingEnd: 16,
     minWidth: 70,
   },
   headerSpacer: {
