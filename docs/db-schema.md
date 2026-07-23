@@ -49,6 +49,9 @@ public.users ──< push_tokens  (one row per device)
 | `20260707000002_snooze_event_rpc.sql` | `snooze_event(uuid)` atomic snooze RPC, SECURITY INVOKER (M5) |
 | `20260708000001_messages.sql` | `messages`: idempotent sends, monotonic receipts, RLS, realtime, INSERT webhook → message-push (M8) |
 | `20260708000002_adherence_stats.sql` | `adherence_stats(uuid, int)` analytics RPC — patient-local day bucketing, resolved-only denominator, SECURITY INVOKER (M10) |
+| `20260722000001_email_exists_rpc.sql` | `email_exists(text)` — SECURITY DEFINER, granted to **anon**; lets the pre-login forgot-password / register screens report whether an account exists (M11). **Deliberately enumerable** — an explicit product decision that overrides GoTrue's anti-enumeration default (see the migration header to revert). |
+| `20260722000002_find_patient_for_invite.sql` | `find_patient_id_by_email(text)` — SECURITY DEFINER, granted to **authenticated**; resolves a `role='patient'` user id by email for the invite flow. Needed because `users_select` RLS hides patients a caregiver isn't linked to yet, which otherwise made "invite by email" always fail (M11). Returns only the id. |
+| `20260723000001_patient_invitations.sql` | `get_patient_invitations()` — SECURITY DEFINER, granted to **authenticated**; returns the calling patient's PENDING invitations joined to the inviting caregiver's name/email (scoped to `auth.uid()`). Needed because `users_select` RLS hides the caregiver profile until the link is active, so the patient couldn't see who invited them (M11). Accept/decline/cancel reuse the existing `relationships_update` RLS. |
 
 **Dev loop:** `supabase db reset` re-runs all migrations and applies
 `supabase/seed/seed.sql`. `supabase test db` runs the pgTAP suite in

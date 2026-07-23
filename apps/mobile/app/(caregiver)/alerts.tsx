@@ -4,7 +4,6 @@
  */
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
-import { useRouter } from 'expo-router';
 import { formatDateAtTime, formatShortDate } from '../../src/utils/dateFormat';
 import { useTranslation } from 'react-i18next';
 import { useAlerts, useMarkAlertRead, useMarkAllAlertsRead } from '../../src/hooks/useAlerts';
@@ -26,7 +25,6 @@ const ALERT_CONFIG: Record<AlertType, { icon: string; color: string }> = {
 
 export default function AlertsScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
   const { data: alerts = [], isLoading, error, refetch } = useAlerts();
   const markRead = useMarkAlertRead();
   const markAllRead = useMarkAllAlertsRead();
@@ -35,16 +33,10 @@ export default function AlertsScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {/* Header — back button removed (hardware/gesture back handles it); the
+          leading spacer keeps the title centered against the trailing button. */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerBtn}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.backLabel')}
-        >
-          <Text style={styles.headerBtnText}>{t('common.back')}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerBtn} />
         <View style={styles.headerCenter}>
           <Text style={styles.title}>{t('alerts.title')}</Text>
           {unreadCount > 0 && (
@@ -192,11 +184,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerBtn: { minWidth: 70, paddingVertical: 6 },
-  headerBtnText: {
-    fontSize: FontSizes.caregiver.body,
-    color: '#FFFFFF',
-    fontWeight: FontWeights.semibold,
-  },
   headerCenter: { flex: 1, alignItems: 'center' },
   title: {
     fontSize: FontSizes.caregiver.headline,

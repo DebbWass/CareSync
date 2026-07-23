@@ -6,7 +6,7 @@
  */
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator } from 'react-native-paper';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { forwardArrow } from '../../../src/utils/rtl';
 import { formatShortDay } from '../../../src/utils/dateFormat';
@@ -35,7 +35,6 @@ function toneColor(theme: ThemeColors, percent: number): string {
 
 export default function PatientAdherenceScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
   const theme = Colors.light;
   const { patientId, patientName } = useLocalSearchParams<{
     patientId: string;
@@ -48,16 +47,7 @@ export default function PatientAdherenceScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* ── Back ─────────────────────────────────────────────────────────── */}
-        <Text
-          style={[styles.back, { color: theme.primary }]}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.backLabel')}
-        >
-          {t('common.back')}
-        </Text>
-
+        {/* Back link removed — hardware/gesture back handles navigation. */}
         {patientName ? (
           <Text style={[styles.patientName, { color: theme.onBackground }]}>{patientName}</Text>
         ) : null}
@@ -195,11 +185,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
     paddingBottom: 40,
-  },
-  back: {
-    fontSize: FontSizes.caregiver.body,
-    fontWeight: FontWeights.semibold,
-    paddingVertical: 4,
   },
   patientName: {
     fontSize: FontSizes.caregiver.headline,

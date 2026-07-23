@@ -18,6 +18,7 @@ var mockResetPasswordForEmail: jest.Mock;
 var mockUpdateUser: jest.Mock;
 var mockSetSession: jest.Mock;
 var mockFrom: jest.Mock;
+var mockRpc: jest.Mock;
 /* eslint-enable no-var */
 
 jest.mock('../../../lib/supabase', () => {
@@ -29,6 +30,7 @@ jest.mock('../../../lib/supabase', () => {
   mockUpdateUser = jest.fn();
   mockSetSession = jest.fn();
   mockFrom = jest.fn();
+  mockRpc = jest.fn();
 
   return {
     supabase: {
@@ -41,6 +43,7 @@ jest.mock('../../../lib/supabase', () => {
         setSession: (...args: unknown[]) => mockSetSession(...args),
       },
       from: (...args: unknown[]) => mockFrom(...args),
+      rpc: (...args: unknown[]) => mockRpc(...args),
     },
   };
 });
@@ -51,6 +54,7 @@ import {
   signUp,
   getProfile,
   getProfileWithRetry,
+  emailExists,
   requestPasswordReset,
   updatePassword,
   parseRecoveryUrl,
@@ -139,6 +143,29 @@ describe('signUp', () => {
     await expect(signUp('dup@example.com', 'pass', 'Dup', 'patient')).rejects.toThrow(
       'Email already registered'
     );
+  });
+
+  it('rejects a duplicate email surfaced as empty identities (confirmations ON)', async () => {
+    // GoTrue anti-enumeration returns a fake user with identities: [] instead
+    // of an error when the address is already registered.
+    mockSignUp.mockResolvedValue({
+      data: { user: { id: 'u4', identities: [] }, session: null },
+      error: null,
+    });
+
+    await expect(signUp('dup@example.com', 'pass', 'Dup', 'caregiver')).rejects.toMatchObject({
+      code: 'emailInUse',
+      messageKey: 'errors.emailInUse',
+    });
+  });
+
+  it('allows a genuine new signup (identities present)', async () => {
+    mockSignUp.mockResolvedValue({
+      data: { user: { id: 'u5', identities: [{ id: 'i1' }] }, session: { access_token: 't' } },
+      error: null,
+    });
+
+    await expect(signUp('fresh@example.com', 'pass', 'Fresh', 'patient')).resolves.toBeDefined();
   });
 });
 
@@ -253,6 +280,30 @@ describe('getProfileWithRetry', () => {
 });
 
 // ── password reset ────────────────────────────────────────────────────────────
+
+describe('emailExists', () => {
+  beforeEach(() => {
+    mockRpc.mockReset();
+  });
+
+  it('calls the email_exists RPC with a normalized email', async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+
+    const result = await emailExists('  Dorit@Example.com ');
+    expect(result).toBe(true);
+    expect(mockRpc).toHaveBeenCalledWith('email_exists', { p_email: 'dorit@example.com' });
+  });
+
+  it('returns false when the account does not exist', async () => {
+    mockRpc.mockResolvedValue({ data: false, error: null });
+    await expect(emailExists('nobody@example.com')).resolves.toBe(false);
+  });
+
+  it('throws a normalized error when the RPC fails', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: new Error('Network request failed') });
+    await expect(emailExists('x@example.com')).rejects.toMatchObject({ code: 'network' });
+  });
+});
 
 describe('requestPasswordReset', () => {
   beforeEach(() => {

@@ -35,6 +35,21 @@
       "dosageA11y": "מינון, שדה חובה",
       "dosagePlaceholder": "לדוגמה: 500 מ\"ג — כדור אחד",
       "dosageRequired": "צריך למלא מינון (לדוגמה: \"10 מ\"ג\" או \"2 כדורים\").",
+      "amountLabel": "כמות *",
+      "amountA11y": "כמות המינון, שדה חובה",
+      "amountPlaceholder": "לדוגמה: 1 או 500",
+      "amountRequired": "צריך למלא כמות (לדוגמה: \"1\" או \"500\").",
+      "unitLabel": "יחידה *",
+      "unitA11y": "יחידת מינון, שדה חובה. הקש פעמיים לבחירה.",
+      "unitPlaceholder": "בחר יחידה",
+      "unitRequired": "צריך לבחור יחידה.",
+      "units": {
+        "pill": "כדור",
+        "drops": "טיפות",
+        "mg": "מ\"ג",
+        "gram": "גרם",
+        "ml": "מ\"ל"
+      },
       "instructionsLabel": "הוראות (לא חובה)",
       "instructionsA11y": "הוראות, לא חובה",
       "instructionsPlaceholder": "לדוגמה: לקחת עם אוכל ומים",
@@ -66,6 +81,15 @@
       "historyLink": "הצגת היסטוריה",
       "historyLinkLabel": "הצגת היסטוריית תרופות",
       "historyLinkHint": "הקשה כפולה לצפייה ברשומות התרופות הקודמות"
+    },
+    "invitations": {
+      "title": "בקשת קשר",
+      "body": "{{name}} רוצה לעזור בניהול התרופות שלך.",
+      "accept": "✓ אישור",
+      "acceptA11y": "אישור טיפול מאת {{name}}",
+      "acceptHint": "הקשה כפולה כדי לאפשר לאדם הזה לעזור בניהול התרופות שלך",
+      "decline": "דחייה",
+      "declineA11y": "דחיית טיפול מאת {{name}}"
     },
     "reminder": {
       "timeToTake": "הגיע הזמן לקחת את התרופה",
@@ -145,7 +169,9 @@
       "fillAllFields": "צריך למלא את כל השדות.",
       "noAccount": "אין לך חשבון? ",
       "registerLink": "הרשמה",
-      "forgotLink": "שכחתי סיסמה"
+      "forgotLink": "שכחתי סיסמה",
+      "rememberMe": "זכור אותי",
+      "rememberMeHint": "שומר את האימייל והסיסמה שלך ומשאיר אותך מחובר במכשיר הזה"
     },
     "register": {
       "subtitle": "יצירת חשבון",
@@ -169,8 +195,9 @@
       "sendButton": "שליחת קישור איפוס",
       "sendA11y": "שליחת קישור לאיפוס סיסמה",
       "enterEmail": "יש להזין כתובת אימייל.",
+      "noAccount": "לא נמצא חשבון עבור כתובת האימייל הזו. בדקו את הכתובת או צרו חשבון חדש.",
       "sentTitle": "בדקו את האימייל",
-      "sentBody": "אם קיים חשבון עבור {{email}}, קישור לאיפוס הסיסמה נשלח אליו. יש לפתוח אותו במכשיר הזה.",
+      "sentBody": "קישור לאיפוס הסיסמה נשלח אל {{email}}. יש לפתוח אותו במכשיר הזה.",
       "backToLogin": "חזרה לכניסה",
       "backToLoginA11y": "חזרה למסך הכניסה"
     },
@@ -254,7 +281,11 @@
     "removeConfirm": "הסרה",
     "removeFailed": "לא ניתן להסיר את המטופל",
     "viewMedsLabel": "הצגת תרופות של {{name}}",
-    "removeLabel": "הסרת {{name}}"
+    "removeLabel": "הסרת {{name}}",
+    "cancelInviteTitle": "לבטל את ההזמנה?",
+    "cancelInviteMessage": "ההזמנה תבוטל. אפשר להזמין את המטופל הזה שוב מאוחר יותר.",
+    "cancelInviteConfirm": "ביטול ההזמנה",
+    "cancelInviteA11y": "ביטול ההזמנה הממתינה"
   },
   "schedules": {
     "title": "לוחות זמנים",

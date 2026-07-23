@@ -4,7 +4,6 @@
  */
 import { FlatList, StyleSheet, View } from 'react-native';
 import { ActivityIndicator } from 'react-native-paper';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDateAtTime, formatLongDateTime, formatTime } from '../../src/utils/dateFormat';
 import { Text } from '../../src/components/ui/Text';
@@ -29,7 +28,6 @@ const STATUS_ICONS: Record<EventStatus, string> = {
 
 export default function PatientHistory() {
   const { t } = useTranslation();
-  const router = useRouter();
   const highContrast = useSettingsStore((s) => s.highContrastMode);
   const theme = highContrast ? Colors.highContrast : Colors.light;
   const { data: events = [], isLoading, error, refetch } = useEventHistory();
@@ -123,17 +121,9 @@ export default function PatientHistory() {
           { backgroundColor: theme.background, borderBottomColor: theme.border },
         ]}
       >
-        <Text
-          size={FontSizes.patient.body}
-          weight="semibold"
-          color={theme.primary}
-          style={styles.backButton}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.backLabel')}
-        >
-          {t('common.back')}
-        </Text>
+        {/* Back button removed — hardware/gesture back handles it; spacer keeps
+            the title centered against the trailing spacer. */}
+        <View style={styles.headerSpacer} />
         <Text
           size={FontSizes.patient.heading}
           weight="bold"
@@ -187,11 +177,6 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: 14,
     borderBottomWidth: 1,
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingEnd: 16,
-    minWidth: 70,
   },
   headerSpacer: {
     minWidth: 70,

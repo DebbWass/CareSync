@@ -1,3 +1,4 @@
+import '../src/lib/suppressExpoGoLogs'; // must precede expo-notifications import (side effect)
 import { useEffect } from 'react';
 import { Redirect, Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

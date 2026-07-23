@@ -17,7 +17,11 @@ import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useLinkedPatients, usePendingInvitations } from '../../../src/hooks/usePatients';
-import { invitePatientByEmail, revokeAccess } from '../../../src/services/supabase/patients';
+import {
+  cancelInvitation,
+  invitePatientByEmail,
+  revokeAccess,
+} from '../../../src/services/supabase/patients';
 import { patientKeys } from '../../../src/hooks/usePatients';
 import { useAuthStore } from '../../../src/store/authStore';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
@@ -69,6 +73,24 @@ export default function PatientManagementScreen() {
     }
   };
 
+  const handleCancelInvite = (rel: PatientCaregiverRelationship) => {
+    Alert.alert(t('patients.cancelInviteTitle'), t('patients.cancelInviteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('patients.cancelInviteConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await cancelInvitation(rel.id);
+            qc.invalidateQueries({ queryKey: patientKeys.pending(caregiverId) });
+          } catch (e) {
+            Alert.alert(t('patients.removeFailed'), t(normalizeSupabaseError(e).messageKey));
+          }
+        },
+      },
+    ]);
+  };
+
   const handleRevoke = (rel: PatientCaregiverRelationship & { patient: User }) => {
     Alert.alert(
       t('patients.removeTitle'),
@@ -93,18 +115,9 @@ export default function PatientManagementScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {/* Header — back button removed (hardware/gesture back handles it). */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerBtn}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.backLabel')}
-        >
-          <Text style={styles.headerBtnText}>{t('common.back')}</Text>
-        </TouchableOpacity>
         <Text style={styles.title}>{t('patients.title')}</Text>
-        <View style={styles.headerBtn} />
       </View>
 
       <KeyboardAvoidingView
@@ -162,11 +175,21 @@ export default function PatientManagementScreen() {
                   </Text>
                   {pending.map((rel) => (
                     <View key={rel.id} style={styles.pendingRow}>
-                      <Text style={styles.pendingName}>
-                        {(rel as PatientCaregiverRelationship & { patient?: { name?: string } })
-                          .patient?.name ?? t('patients.pendingAwaiting')}
-                      </Text>
-                      <Text style={styles.pendingStatus}>{t('patients.pendingBadge')}</Text>
+                      <View style={styles.pendingInfo}>
+                        <Text style={styles.pendingName}>
+                          {(rel as PatientCaregiverRelationship & { patient?: { name?: string } })
+                            .patient?.name ?? t('patients.pendingAwaiting')}
+                        </Text>
+                        <Text style={styles.pendingStatus}>{t('patients.pendingBadge')}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleCancelInvite(rel)}
+                        style={[styles.actionBtn, styles.revokeBtn]}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('patients.cancelInviteA11y')}
+                      >
+                        <Text style={styles.revokeBtnText}>✕</Text>
+                      </TouchableOpacity>
                     </View>
                   ))}
                 </>
@@ -275,12 +298,6 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     paddingHorizontal: 16,
   },
-  headerBtn: { minWidth: 70, paddingVertical: 6 },
-  headerBtnText: {
-    fontSize: FontSizes.caregiver.body,
-    color: '#FFFFFF',
-    fontWeight: FontWeights.semibold,
-  },
   title: {
     flex: 1,
     textAlign: 'center',
@@ -317,6 +334,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.border,
     marginTop: 6,
   },
+  pendingInfo: { flex: 1, gap: 2 },
   pendingName: { fontSize: FontSizes.caregiver.body, color: Colors.light.onBackground },
   pendingStatus: { fontSize: FontSizes.caregiver.label, color: Colors.light.secondary },
   patientRow: {

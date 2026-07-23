@@ -423,6 +423,18 @@ export type Database = {
           total_doses: number
         }[]
       }
+      email_exists: { Args: { p_email: string }; Returns: boolean }
+      find_patient_id_by_email: { Args: { p_email: string }; Returns: string }
+      get_patient_invitations: {
+        Args: Record<string, never>
+        Returns: {
+          relationship_id: string
+          caregiver_id: string
+          caregiver_name: string
+          caregiver_email: string
+          created_at: string
+        }[]
+      }
       is_caregiver_for: { Args: { patient: string }; Returns: boolean }
       snooze_event: {
         Args: { p_event_id: string }

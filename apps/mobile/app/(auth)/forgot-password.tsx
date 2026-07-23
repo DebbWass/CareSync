@@ -1,14 +1,18 @@
 /**
  * Forgot-password screen — sends a recovery email with a deep link back to
- * /reset-password. The success copy deliberately does not confirm whether an
- * account exists (anti-enumeration, mirroring GoTrue's behavior).
+ * /reset-password.
+ *
+ * Product decision (2026-07-22): unlike GoTrue's default anti-enumeration
+ * behavior, this screen checks emailExists() first and shows an explicit "no
+ * account" message when the address isn't registered. See the email_exists RPC
+ * migration for the enumeration trade-off this accepts.
  */
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { requestPasswordReset } from '../../src/services/supabase/auth';
+import { emailExists, requestPasswordReset } from '../../src/services/supabase/auth';
 import { normalizeSupabaseError } from '../../src/services/supabase/errors';
 import { Colors } from '../../src/constants/colors';
 
@@ -28,7 +32,15 @@ export default function ForgotPasswordScreen() {
     setError('');
     setLoading(true);
     try {
-      await requestPasswordReset(email.trim().toLowerCase());
+      const normalizedEmail = email.trim().toLowerCase();
+      // Explicitly tell the user when no account exists (product decision) —
+      // otherwise resetPasswordForEmail silently succeeds either way.
+      const exists = await emailExists(normalizedEmail);
+      if (!exists) {
+        setError(t('auth.forgot.noAccount'));
+        return;
+      }
+      await requestPasswordReset(normalizedEmail);
       setSent(true);
     } catch (err: unknown) {
       setError(t(normalizeSupabaseError(err).messageKey));
