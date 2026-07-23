@@ -108,10 +108,7 @@ export async function getPatientInvitations(): Promise<PatientInvitation[]> {
  * Patient responds to an invitation: accept → 'active', decline → 'revoked'.
  * RLS (relationships_update) authorizes the patient to update their own row.
  */
-export async function respondToInvitation(
-  relationshipId: string,
-  accept: boolean
-): Promise<void> {
+export async function respondToInvitation(relationshipId: string, accept: boolean): Promise<void> {
   const { error } = await supabase
     .from('patient_caregiver_relationships')
     .update({ status: accept ? 'active' : 'revoked' })
