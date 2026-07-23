@@ -1,12 +1,13 @@
 /**
  * Unit tests for scheduleUtils.ts
  *
- * All functions are pure (no I/O, no network, no React) so no mocking is needed.
+ * Label helpers read the active i18n language (M6); tests pin the language
+ * per-case so they are deterministic regardless of the host machine locale.
  */
 
+import i18n from '../../i18n';
 import {
-  DAY_LABELS,
-  FREQUENCY_LABELS,
+  dayLabels,
   defaultTimesForFrequency,
   formatDays,
   formatTimes,
@@ -16,25 +17,26 @@ import {
   todayISO,
 } from '../scheduleUtils';
 
-// ── FREQUENCY_LABELS ──────────────────────────────────────────────────────────
-
-describe('FREQUENCY_LABELS', () => {
-  it('has a label for every frequency type', () => {
-    expect(FREQUENCY_LABELS.daily).toBe('Once daily');
-    expect(FREQUENCY_LABELS.twice_daily).toBe('Twice daily');
-    expect(FREQUENCY_LABELS.three_times_daily).toBe('Three times daily');
-    expect(FREQUENCY_LABELS.weekly).toBe('Weekly');
-    expect(FREQUENCY_LABELS.custom).toBe('Custom');
-  });
+beforeEach(async () => {
+  await i18n.changeLanguage('en');
 });
 
-// ── DAY_LABELS ────────────────────────────────────────────────────────────────
+// ── dayLabels ─────────────────────────────────────────────────────────────────
 
-describe('DAY_LABELS', () => {
-  it('has 7 entries starting with Sun', () => {
-    expect(DAY_LABELS).toHaveLength(7);
-    expect(DAY_LABELS[0]).toBe('Sun');
-    expect(DAY_LABELS[6]).toBe('Sat');
+describe('dayLabels', () => {
+  it('has 7 entries starting with Sun (en)', () => {
+    const labels = dayLabels();
+    expect(labels).toHaveLength(7);
+    expect(labels[0]).toBe('Sun');
+    expect(labels[6]).toBe('Sat');
+  });
+
+  it('is localized (he)', async () => {
+    await i18n.changeLanguage('he');
+    const labels = dayLabels();
+    expect(labels).toHaveLength(7);
+    // Hebrew week starts Sunday (א׳); must not fall back to English
+    expect(labels[0]).not.toBe('Sun');
   });
 });
 
@@ -116,6 +118,11 @@ describe('formatTimes', () => {
 
   it('returns empty string for empty array', () => {
     expect(formatTimes([])).toBe('');
+  });
+
+  it('uses the 24-hour clock in Hebrew (Israeli convention)', async () => {
+    await i18n.changeLanguage('he');
+    expect(formatTimes(['08:00', '20:05'])).toBe('8:00, 20:05');
   });
 });
 

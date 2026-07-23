@@ -1,8 +1,8 @@
 # CareSync — Project Handoff
 
-**Snapshot date:** 2026-07-07
-**Branch state:** `develop` = milestones M0–M4 merged (PRs #6–#12); promotion PR #13 (`develop` → `main`) open
-**Overall completion: ~45%** of the production-rebuild scope (5 of 12 milestones done)
+**Snapshot date:** 2026-07-08
+**Branch state:** `develop` = M0–M10 merged (M5=#15, M7=#16, M6=#18, M8=#19, M9=#20, M10=#21); M11 offline-resilience core on `feature/m11-offline-resilience` (PR pending)
+**Overall completion: ~92%** of the production-rebuild scope (M0–M10 done; M11 resilience code complete, M11 release-prep + device validation remain)
 **Project health: GOOD** — every merged milestone passed an 8-job CI gate; no known broken flows in merged code
 
 > This file is the single source of truth for project status. **Update it at the
@@ -174,72 +174,249 @@ the milestone list below is the durable copy.
       25 Deno tests, `npm run scheduler:run`. **Verified live** on the local
       stack including a webhook-replay dedup proof. Complete.
 
-**Test totals on develop:** 78 Jest · 25 Deno · 47 pgTAP · 8 CI jobs green.
+- [x] **M5 — Patient reminder experience** (PR #15, MERGED — device-validation
+      tail remains, see Remaining). Fixed the `snoozeEvent` read-then-increment race with
+      a `snooze_event(uuid)` RPC (SECURITY INVOKER single-UPDATE increment,
+      status-guarded, pgTAP-covered; migration 20260707000002). Optimistic
+      confirm/snooze with rollback in `useMedicationEvent` (hook tests cover
+      optimistic + rollback + null-RPC-result paths). All four patient
+      surfaces hardened: i18n (`patient.*` namespace), ErrorBanner with retry,
+      design-system Text/Button (font-scale aware), theme-aware deep-link
+      screen, localized tab labels. Button + ErrorBanner made high-contrast
+      aware (were hardcoded to the light palette). Maestro: new
+      `05_patient_confirm_medication.yaml`; fixed flow 02 missing tab-nav step.
+      **REMAINING (user actions, after M7 merges):** EAS dev build on a
+      physical Android device; validate cron → push → tap → confirm → caregiver
+      update incl. killed-app cold start; father's device-profile checkpoint
+      (font scale ≥1.3, TalkBack). Use a build that includes M7 — its
+      AuthGuard fix is required for the cold-start push→tap path.
+
+- [~] **M7 — Auth hardening** (feature/m7-auth-hardening — CODE COMPLETE,
+      PR #16 open; develop, including M5, already merged in). Minimum password 8
+      (config.toml + `MIN_PASSWORD_LENGTH` client validation); forgot/reset
+      password flow: `(auth)/forgot-password` + standalone `app/reset-password`
+      deep-link target (`caresync://reset-password`, implicit-flow fragment
+      tokens parsed by `parseRecoveryUrl` — RN URLSearchParams is unreliable);
+      GoTrue error codes mapped into the AppError contract
+      (invalidCredentials/emailInUse/weakPassword/samePassword/rateLimit/
+      expiredLink) so auth screens stop showing raw API strings; full i18n
+      sweep of login/register (`auth.*` namespace); `getProfileWithRetry`
+      fixes the fresh-signup bounce; AuthGuard now allowlists standalone
+      routes — this also fixed a latent bug where the guard bounced the
+      `/reminder/[eventId]` push deep link back to home. +11 Jest tests.
+      **REMAINING (user actions):** review/merge the PR; reset-email delivery
+      on the hosted stack uses Supabase's built-in SMTP (fine for dev; custom
+      SMTP is an M11/production item).
+
+- [x] **M6 — Hebrew + RTL + language switcher** (MERGED via PR #18; the
+      original #17 was merged into the wrong target — the already-merged M7
+      branch — and never reached develop). Full `he.json` (elderly-simple
+      Hebrew); en/he key-parity Jest
+      test (incl. plural-suffix normalization and {{placeholder}} parity);
+      first-ever Settings UI (patient 3rd tab + caregiver header gear):
+      language switcher (device/עברית/English), high-contrast toggle and
+      text-size stepper (store settings existed but had NO UI until now —
+      closed a non-negotiable gap); switching writes settingsStore +
+      users.language (scheduler push copy) + i18n; RTL direction change
+      applies I18nManager.forceRTL immediately and OFFERS a restart
+      (declining is safe — applies next launch); date-fns-based locale-aware
+      date/time helpers (Hebrew = 24h clock, "7 ביולי"); DAY_LABELS →
+      i18n keys, FREQUENCY_LABELS deleted (was test-only); caregiver tab
+      labels localized (were hardcoded); RTL style audit (start/end
+      geometry, direction-aware chevrons/arrows via utils/rtl.ts).
+      **REMAINING (user action):** verify the RTL flip on a real device
+      (forceRTL needs a dev build, not Expo Go).
+
+- [x] **M8 — Urgent messaging: data layer** (PR #19, MERGED).
+      `messages` table: pair + sender + body, `UNIQUE(sender_id, client_id)`
+      idempotency (offline-outbox retry → 23505-as-success), monotonic
+      receipts sent→delivered→read with server-set timestamps
+      (trigger-enforced; read implies delivered), body/identity immutable,
+      DELETE blocked even for service_role. RLS: active-relationship-only
+      sending, no sender forgery, recipient-only receipts. Realtime
+      publication + REPLICA IDENTITY FULL. AFTER INSERT webhook →
+      message-push Edge Fn (localized, NO-PHI push: {type:'message',
+      message_id}; patient recipients get the MAX 'medications' channel).
+      14 pgTAP + 6 Deno tests. **Critical M9 gotcha VERIFIED LIVE**
+      (`npm run verify:realtime`): postgres_changes DOES deliver to
+      RLS-constrained users, BUT ONLY if the client calls
+      `realtime.setAuth(token)` before subscribing — without it the socket
+      joins as anon and events are silently withheld. M9's RealtimeProvider
+      must do this.
+
+- [x] **M9 — Urgent messaging: client** (PR #20, MERGED). `messages` service
+      (23505-as-success = the
+      duplicate IS the success), persisted offline outbox (Zustand +
+      AsyncStorage; entry saved with its client_id BEFORE the first network
+      attempt — crash-safe exactly-once; exponential backoff, permanent
+      failures dropped, NetInfo reconnect flush via useOutboxFlusher);
+      RealtimeProvider honoring the verified setAuth rule (re-runs setAuth +
+      resubscribes on every token change; also made the caregiver alert
+      inbox live — closed the backlog item); patient fullscreen popup
+      `app/message/[messageId].tsx` (elderly a11y: one message, one 80dp
+      GOT-IT button; viewing = delivered, acknowledging = read); caregiver
+      thread `(caregiver)/messages/[patientId]` (compose, receipt ticks
+      icon+text never color-only, offline banner, open-marks-read); dashboard
+      patient-card 💬 entry; tap handler + AuthGuard route 'message' deep
+      links; en+he strings (parity-tested). +11 Jest tests.
+      **REMAINING (user):** live message flow rides the same physical-device
+      validation pass as M5.
+
+- [~] **M10 — Caregiver analytics** (feature/m10-caregiver-analytics — CODE
+      COMPLETE, PR pending). `adherence_stats(patient_id, days)` RPC: buckets
+      resolved doses by `(scheduled_time AT TIME ZONE users.timezone)::date`
+      (patient-local day, so a 23:30 local dose files under the right day, not
+      its UTC day), denominator = taken + missed only (pending/snoozed are
+      unsettled — a dose due tonight is not a miss). SECURITY INVOKER, so RLS
+      constrains it to the caller's patients (arbitrary id → no rows); no new
+      read surface. Client: `analytics` service (getAdherenceStats +
+      summarizeAdherence, whose `percent` is nullable → UI shows "no data", not
+      a misleading 0%), `useAdherence` hook (per-domain key factory), shared
+      `adherenceTone` util (good/fair/poor thresholds + icons, never
+      color-only). UI: dashboard patient-card adherence badge (fetches its own
+      window, links through) + new per-patient trends screen
+      `(caregiver)/patients/[patientId]` — headline % + per-day bar trend built
+      from **plain Views on purpose** (a real chart library stays a UI
+      checkpoint for the owner). `formatShortDay` parses bare YYYY-MM-DD as a
+      local date (no UTC shift). en+he `analytics.*` (parity-tested). 8 pgTAP
+      (incl. the midnight-edge proof) + 7 Jest. Verified against seed →
+      85.7% (18/21). **REMAINING (user):** review/merge the PR; the chart-library
+      decision if richer visuals are wanted (deliberately deferred).
+
+- [~] **M11 — Offline resilience** (feature/m11-offline-resilience — CODE
+      COMPLETE for the resilience half; release-prep half remains). Four
+      hardening pieces for a phone in an elderly person's pocket: (1)
+      **onlineManager ← NetInfo** — React Query now pauses queries offline and
+      resumes on reconnect instead of firing into a dead network
+      (`src/lib/onlineManager.ts`, wired in the root layout before any query);
+      (2) **global 401 recovery** — a server-rejected session (password change
+      elsewhere, revoked token, key rotation) surfaces as AppError('auth') and
+      would loop forever; a QueryCache/MutationCache onError signs out once
+      (re-entrancy guarded, only when a session exists) → AuthGuard redirects to
+      login (`src/lib/authRecovery.ts` + `queryClient.ts`); (3) **error
+      boundary** — a render crash no longer unmounts to a blank screen; a
+      localized "Try again" recovery screen re-mounts the subtree (class
+      component, Paper-free; en+he); (4) **offline confirm outbox** — the "I
+      took it" tap is persisted with its tap-time `taken_time` BEFORE the first
+      network attempt and replayed on reconnect, so the audit log records when
+      the patient actually took the dose; `confirmEvent` gained an optional
+      takenTime + a `status <> 'taken'` idempotency guard (replay never clobbers
+      a taken_time), `useConfirmEvent` enqueues on network error (non-network
+      still rolls back), both outboxes ride the one NetInfo flusher. No DB change
+      (uses the existing table + RLS). +7 Jest. **M11 release-prep is now
+      essentially built:** runbook (`docs/runbook.md`), npm audit triage +
+      **gate flipped to blocking on critical** (non-breaking `npm audit fix`
+      applied; full gate + `expo export` re-verified green), `npm run chaos`
+      smoke, English + **Hebrew** user-guide drafts (`docs/user-guide.md` +
+      `docs/user-guide.he.md`), explicit EAS production store profile + release
+      steps, and the Maestro release suite (`.maestro/README.md` + adherence
+      flow). **What TRULY REMAINS is execution the owner must do:** run the EAS
+      production build/submit (needs real credentials); personalise + approve the
+      user-guide drafts (esp. Hebrew/patient wording); device-validate the
+      Maestro flows; and the Expo SDK 54→57 bump (clears the last `ws` high and
+      lets the audit threshold rise to `high`) — deliberately deferred, needs
+      device validation, NOT a hotfix.
+
+- [x] **M11 — Auth & i18n polish (2026-07-22, from device testing).** Six
+      user-reported fixes on `feature/m11-release-prep-final`:
+      1. **Missing tab/header icons** — switched `react-native-vector-icons`
+         (fonts never bundle in Expo managed) to `@expo/vector-icons` in both
+         `(caregiver)/_layout.tsx` and `(patient)/_layout.tsx`; the MCI font now
+         embeds (verified via `expo export`).
+      2. **Wrong launch language** — i18n read `settingsStore` synchronously at
+         import, before AsyncStorage rehydration, so the app locked onto the
+         device language while Settings showed the saved one. Added
+         `syncLanguageWithStore()` (i18n/index.ts) reconciling on
+         `persist.onFinishHydration`. +3 Jest.
+      3. **Remember me** — login screen checkbox + `settingsStore.rememberedEmail`
+         pre-fill (session already persists via SecureStore). +1 Jest.
+      4. **Unique email** — `signUp()` now also rejects GoTrue's empty-`identities`
+         anti-enumeration response, so "email already in use" shows regardless of
+         the *Confirm email* setting. Live-verified on local. +2 Jest.
+      5. **Account-not-found on reset** — new `email_exists(text)` SECURITY DEFINER
+         RPC (anon-granted); forgot-password checks it first and shows an explicit
+         message. **Deliberately reverses anti-enumeration — an explicit owner
+         decision.** RPC live-verified (true/false/case-insensitive). +3 Jest.
+      6. **Real reset emails (SMTP)** — code/flow ready and verified (reset email
+         generated, captured by local Mailpit). Real delivery is owner-executed:
+         SMTP runbook added to `docs/deployment.md` (Step 6). **REMAINS:** enter
+         the SMTP API key in the hosted dashboard, push migrations to hosted, add
+         the `caresync://reset-password` redirect URL.
+      7. **Invite-patient by email failed** — `users_select` RLS hides patients a
+         caregiver isn't linked to yet, so the invite lookup always reported "no
+         patient found". Added `find_patient_id_by_email(text)` SECURITY DEFINER
+         RPC (authenticated) and routed `invitePatientByEmail` through it. Live-
+         verified against the real local accounts (patient→id, caregiver→null,
+         case-insensitive).
+      8. **Patient couldn't see/accept invitations + no way to disconnect** —
+         invitations are in-app (no email), but the patient app had no surface to
+         act on them, and `users_select` RLS hid the inviting caregiver. Added
+         `get_patient_invitations()` SECURITY DEFINER RPC (returns pending invites
+         + caregiver name/email), a patient-home invitation card (Accept/Decline),
+         a caregiver **Cancel** button for pending invites, and made
+         `invitePatientByEmail` revive a cancelled/revoked link instead of failing
+         on the unique constraint (so cancel→re-invite works; an already-active
+         link still reports conflict). Accept/decline/cancel ride existing
+         `relationships_update` RLS. Live-verified the whole lifecycle
+         (invite→see→accept, cancel, re-invite). +7 Jest.
+
+**Test totals (develop + M11 branch):** 170 Jest · 31 Deno · 77 pgTAP ·
+8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)
 
 ### High priority — required for production
 
-- [ ] **M5 — Patient reminder experience** (THE core loop). Harden
-      `app/(patient)/index.tsx`, `app/reminder/[eventId].tsx`,
-      `app/(patient)/history.tsx`, `src/components/patient/ReminderCard.tsx`
-      to design-system + elderly-a11y standards (48sp med name, 80dp confirm,
-      snooze-limit UX, ErrorBanner, `t()` strings); optimistic confirm/snooze
-      with rollback; **fix the `snoozeEvent` read-then-increment race**
-      (`src/services/supabase/events.ts` — make atomic, e.g. RPC);
-      validate push→tap→confirm end-to-end on a **physical EAS dev build**
-      including killed-app cold start. Depends on: EAS login/build (user
-      action). Complexity: **High**. Ends with the user verifying on her
-      father's device profile (font scale, TalkBack).
-- [ ] **M6 — Hebrew + RTL + language switcher.** Full `he.json` (elderly-simple
-      Hebrew — user reviews copy); switcher writes settingsStore + `users
-      .language`; `I18nManager.forceRTL` + `Updates.reloadAsync` flow; RTL
-      style audit (marginStart/End, textAlign:'auto', icon flips); localize
-      dates + `DAY_LABELS` (currently English in `src/utils/scheduleUtils.ts`);
-      en/he key-parity test. Files: every screen (styles only), i18n/, layouts.
-      Depends on M5 (so patient screens exist to translate). Complexity: **High**.
-- [ ] **M7 — Auth hardening.** Min password 8 (currently 6 in
-      `supabase/config.toml`), forgot/reset-password screens + deep link,
-      localized errors. Complexity: **Medium**.
-- [ ] **M8+M9 — Urgent patient↔caregiver messaging.** New `messages` table
-      (client_id idempotency, monotonic sent→delivered→read trigger, RLS,
-      realtime publication, INSERT webhook → new message-push Edge Fn);
-      RealtimeProvider; persisted offline outbox (Zustand + NetInfo, backoff,
-      23505-as-success = exactly-once); patient fullscreen popup
-      `app/message/[messageId].tsx`; caregiver compose + receipts. The design
-      is fully specified in the approved plan. Complexity: **High**.
-      Critical gotcha to verify early: postgres_changes delivery WITH RLS
-      enabled.
-- [ ] **M11 — Offline resilience + release prep.** TanStack onlineManager ←
-      NetInfo; global error boundary; 401 path; offline confirm outbox
-      (record `taken_time` at tap time); flip `npm audit` CI job to blocking;
-      chaos-test script; runbook + user manuals (he/en); EAS production
-      profile; full Maestro suite as release gate. Complexity: **High**.
+- [ ] **M5 — validation tail** (M5 merged; see Completed section). Entirely
+      user-in-the-loop: EAS dev build on a physical Android device, validate
+      push→tap→confirm end-to-end including killed-app cold start, and the
+      father's device-profile checkpoint (font scale, TalkBack). Build must
+      include M7 (AuthGuard deep-link fix).
+- [ ] **M6 — RTL spot-check** (merged): flip to Hebrew in Settings on a dev
+      build and confirm the restart + mirrored layout.
+- [ ] **M10 — review tail** (code complete, see Completed section): review
+      and merge the M10 PR. Optional user checkpoint: whether to adopt a chart
+      library for richer adherence visuals (the shipped trend is dependency-free
+      by design).
+- [~] **M11 — Offline resilience + release prep.** Resilience half DONE (see
+      Completed): onlineManager ← NetInfo, global error boundary, 401 path,
+      offline confirm outbox. Release-prep started: **`docs/runbook.md`** (the
+      authoritative production deploy + incident runbook), the **npm audit
+      triage** (see below), and **`npm run chaos`** (`scripts/chaos.mjs` —
+      abuses the PostgREST surface to prove idempotent dose generation,
+      audit-log immutability even for service_role, message exactly-once and
+      alert dedup all hold; verified green locally) are done. **Release-prep
+      half is now essentially built** (runbook, audit triage + gate flip to
+      blocking-on-critical, chaos smoke, English + Hebrew user-guide drafts, EAS
+      store profile + steps, Maestro release suite). What TRULY remains is
+      owner-executed: the EAS production build/submit (real credentials),
+      personalising/approving the user guides, device-validating the Maestro
+      flows, and the Expo SDK 54→57 bump (deferred; needed to raise the audit
+      threshold to `high`). Complexity: **Low** (only execution left).
+      - **npm audit (recorded in runbook §4):** the CI Dependency Audit job now
+        **blocks on critical** (0 after the non-breaking fix) and reports
+        high/moderate. The remaining high/moderate advisories are transitive
+        **build-toolchain** deps (`ws`/`tar`/`js-yaml` via metro/dev-middleware)
+        — not in the shipped bundle. The applied non-breaking `npm audit fix`
+        (lockfile only) cleared the critical + one high; the last `ws` high needs
+        a breaking **Expo SDK bump** (`expo@57`), after which raise the gate
+        threshold from `critical` to `high`. Do NOT run `npm audit fix --omit=dev`
+        — it prunes devDependencies (jest/@types) and breaks the toolchain
+        (verified this session; reverted).
 
 ### Medium priority
 
-- [ ] **M10 — Caregiver analytics.** `adherence_stats` SQL view/RPC with
-      `AT TIME ZONE users.timezone` day bucketing (midnight-edge pgTAP test);
-      dashboard adherence % + trends; per-patient history screen. User
-      checkpoint before adding any chart library. Complexity: **Medium**.
-- [ ] Refresh Maestro flows against current screen text (audit found at least
-      one stale button label) and add reminder-confirm + language-switch flows.
+- [x] **M10 — Caregiver analytics** (code complete on
+      `feature/m10-caregiver-analytics`; see Completed section). Delivered the
+      `adherence_stats` RPC + dashboard adherence % + per-patient trends screen.
+      A chart library was deliberately NOT added — that remains a user checkpoint.
+- [ ] Add a language-switch Maestro flow (settings → עברית → restart prompt).
       Complexity: **Low**.
-- [ ] Profile-bootstrap resilience: `useAuth` signs the user out if
-      `getProfile` returns null; a slow `handle_new_user` trigger right after
-      signup could bounce a fresh user. Add a short retry. Files:
-      `src/hooks/useAuth.ts`. Complexity: **Low**.
-- [ ] Realtime for the caregiver inbox (publications exist since M1; no client
-      subscription yet — currently refetch-on-focus). Arrives naturally with
-      M9's RealtimeProvider. Complexity: **Low** once M9 lands.
+- [x] Realtime for the caregiver inbox — done in M9's RealtimeProvider (it also
+      subscribes the alert inbox; `realtime.setAuth` honored).
 
 ### Low priority / cleanup
 
-- [ ] Deduplicate frequency/day labels: `FREQUENCY_LABELS` in
-      `scheduleUtils.ts` now overlaps `schedules.frequency.*` i18n keys —
-      remove the constant after M6 localizes `DAY_LABELS`. **Low**.
-- [ ] `(patient)/_layout.tsx` tab labels ("Today"/"History") are still
-      hardcoded English — fold into M5/M6 sweep. **Low**.
 - [ ] Update `CLAUDE.md` (still describes the pre-rebuild "7 phases"; commands
       and schema sections need a refresh; add: read PROJECT_HANDOFF.md first).
       Also refresh `docs/architecture.md`, `docs/api-reference.md`,
@@ -253,16 +430,25 @@ the milestone list below is the durable copy.
 
 ## Known Issues
 
-1. `snoozeEvent` race (read-then-increment) — two rapid snoozes could lose a
-   count. Fix scheduled for M5 (atomic RPC).
-2. Patient screens don't yet meet the elderly-a11y spec and bypass the
-   ErrorBanner/i18n patterns (pre-rebuild code, M5 scope).
-3. Fresh-signup bounce possibility if profile trigger lags (see Medium item).
-4. Maestro flow 02 references a stale button label.
-5. `docs/` other than db-schema.md and notification-flow.md are partly stale.
-6. GitHub Actions once silently dropped a workflow run for a pushed commit
+1. `docs/` other than db-schema.md and notification-flow.md are partly stale.
+2. GitHub Actions once silently dropped a workflow run for a pushed commit
    (PR #9 fix commit) — if CI seems missing, check `gh run list` before
    assuming success.
+3. Jest full-suite runs on Windows sometimes print "worker process has failed
+   to exit gracefully"; `--detectOpenHandles` finds nothing, all tests pass,
+   and subsets run clean — treated as a flaky local artifact; watch CI.
+4. Snoozing does not schedule a re-push server-side: the chosen snooze
+   minutes are UI-only today (the scheduler pushes once per dose via
+   `notified_at`). The reminder card stays visible until taken/missed, which
+   is honest UX, but a true "remind me again in N minutes" needs scheduler
+   support — candidate for M11 scope discussion.
+
+Resolved this session: the `snoozeEvent` read-then-increment race (atomic
+RPC), patient screens bypassing a11y/i18n/ErrorBanner patterns, the stale
+Maestro flow 02 (missing Medications-tab navigation step), the fresh-signup
+profile bounce (retry in M7), the AuthGuard bouncing standalone deep-link
+routes (`/reminder/[eventId]`, `/reset-password`), and raw GoTrue error
+strings on the auth screens.
 
 ## Technical Debt
 
@@ -332,24 +518,29 @@ carry rationale comments.
 
 ## Current Development Status
 
-Last session completed M4 (notification hardening, PR #12, merged) and opened
-the M0–M4 promotion PR #13 (`develop`→`main`, **still open — merge it**).
-Nothing is half-finished on `develop`; the tree is clean. The immediate next
-work is M5.
+Sessions of 2026-07-07/08 delivered M5 (#15), M7 (#16), M6 (#18 after the
+mis-targeted #17), M8 (#19), M9 (#20), M10 (#21) — all MERGED — and the M11
+offline-resilience core (`feature/m11-offline-resilience`, PR pending). One
+open milestone PR at a time from here on (the doc-conflict lesson). All 11
+milestones now have code; what remains is the M11 release-prep half
+(audit-blocking, chaos script, manuals, EAS prod profile, Maestro release
+gate) and the physical-device validation pass.
 
 ## Next Recommended Tasks (in order)
 
-1. Merge promotion PR #13.
-2. **M5 kickoff**: fix `snoozeEvent` atomicity; harden the three patient
-   screens + ReminderCard (design system, a11y spec, ErrorBanner, `t()`);
-   optimistic confirm/snooze.
-3. EAS dev build on a physical Android device; validate cron → push → tap →
-   fullscreen reminder → confirm → caregiver dashboard update, including the
-   killed-app cold-start path.
-4. New Maestro flow `patient-confirm-medication.yaml`; refresh stale flows.
-5. User checkpoint: demo with father's device profile (font scale ≥1.3,
-   TalkBack spot-check).
-6. Then M6 (Hebrew/RTL) — see roadmap above.
+1. **User: review + merge the M11 PR** (offline-resilience core).
+2. **User: EAS dev build** on a physical Android device; one validation
+   pass covering everything shipped: cron → push → tap → fullscreen
+   reminder → confirm → caregiver dashboard update incl. killed-app cold
+   start; caregiver sends an urgent message → patient popup → GOT IT →
+   receipt turns "read"; airplane-mode send → reconnect → auto-delivery;
+   Hebrew switch + RTL restart in Settings; the new adherence badge/trends
+   screen; father's device profile (font scale ≥1.3, TalkBack) — in Hebrew.
+   Also exercise the new resilience layer: airplane-mode confirm → reconnect →
+   the dose syncs with its original tap time.
+3. Then the **M11 release-prep** follow-up PR (audit-blocking, chaos script,
+   he/en manuals, EAS production profile, Maestro release gate). Consider a
+   develop→main promotion once the device validation passes.
 
 ## Risks — do not break these
 

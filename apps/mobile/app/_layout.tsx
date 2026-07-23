@@ -1,3 +1,4 @@
+import '../src/lib/suppressExpoGoLogs'; // must precede expo-notifications import (side effect)
 import { useEffect } from 'react';
 import { Redirect, Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,10 +10,17 @@ import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import '../src/i18n'; // side-effect init — must precede any useTranslation()
 import { useAuthStore } from '../src/store/authStore';
 import { useAuthListener } from '../src/hooks/useAuth';
+import { useOutboxFlusher } from '../src/hooks/useOutbox';
+import { RealtimeProvider } from '../src/components/providers/RealtimeProvider';
+import { ErrorBoundary } from '../src/components/ui/ErrorBoundary';
 import { setupNotificationChannels } from '../src/services/notifications/channels';
 import { queryClient } from '../src/lib/queryClient';
+import { setupOnlineManager } from '../src/lib/onlineManager';
 import { Colors } from '../src/constants/colors';
 import type { NotificationData } from '../src/types/notifications';
+
+// Pause/resume React Query with real connectivity — runs before any query.
+setupOnlineManager();
 
 // Remote push notifications are not supported in Expo Go SDK 53+
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -57,8 +65,20 @@ function AuthGuard({ isAuthReady }: { isAuthReady: boolean }) {
   const inPatientGroup = segments[0] === '(patient)';
   const inCaregiverGroup = segments[0] === '(caregiver)';
 
+  // The password-recovery deep link manages its own session (tokens arrive in
+  // the URL); redirecting it — with or without a session — would break the flow.
+  if (segments[0] === 'reset-password') {
+    return null;
+  }
+
   if (!session) {
     return inAuthGroup ? null : <Redirect href="/(auth)/login" />;
+  }
+
+  // Push-notification deep links — valid for a signed-in user of either
+  // role; without this exception the role redirect below would bounce them.
+  if (segments[0] === 'reminder' || segments[0] === 'message') {
+    return null;
   }
 
   if (role === 'patient' && !inPatientGroup) {
@@ -93,29 +113,51 @@ export default function RootLayout() {
       if (data?.type === 'alert') {
         router.push('/(caregiver)/alerts');
       }
+
+      if (data?.type === 'message' && data.message_id) {
+        router.push(`/message/${data.message_id}`);
+      }
     });
 
     return () => subscription.remove();
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider theme={theme}>
-        <AuthGuard isAuthReady={isReady} />
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(patient)" />
-          <Stack.Screen name="(caregiver)" />
-          <Stack.Screen
-            name="reminder/[eventId]"
-            options={{
-              presentation: 'fullScreenModal',
-              animation: 'fade',
-            }}
-          />
-        </Stack>
-      </PaperProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={theme}>
+          <AuthGuard isAuthReady={isReady} />
+          <RealtimeProvider />
+          <OutboxFlusher />
+          <StatusBar style="auto" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(patient)" />
+            <Stack.Screen name="(caregiver)" />
+            <Stack.Screen
+              name="reminder/[eventId]"
+              options={{
+                presentation: 'fullScreenModal',
+                animation: 'fade',
+              }}
+            />
+            <Stack.Screen
+              name="message/[messageId]"
+              options={{
+                presentation: 'fullScreenModal',
+                animation: 'fade',
+              }}
+            />
+            <Stack.Screen name="reset-password" />
+          </Stack>
+        </PaperProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
+}
+
+// Hook host: keeps the outbox NetInfo lifecycle out of RootLayout's own hooks
+function OutboxFlusher() {
+  useOutboxFlusher();
+  return null;
 }

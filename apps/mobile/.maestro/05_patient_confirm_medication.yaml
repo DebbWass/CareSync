@@ -1,0 +1,38 @@
+appId: host.exp.exponent
+name: Patient - Snooze and Confirm Medication (core loop)
+---
+# Prerequisite: a pending medication_event for the seed patient within the
+# reminder window. Locally: `npm run db:reset` then `npm run scheduler:run`
+# shortly before a seeded dose time (see supabase/seed/seed.sql).
+- launchApp:
+    clearState: true
+
+# Login as patient
+- assertVisible: 'Sign In'
+- tapOn:
+    label: 'Email address'
+- inputText: ${PATIENT_EMAIL}
+- tapOn:
+    label: 'Password'
+- inputText: ${PATIENT_PASSWORD}
+- tapOn:
+    label: 'Sign in to CareSync'
+
+# The fullscreen reminder must be showing
+- assertVisible: 'TIME TO TAKE YOUR MEDICATION'
+- assertVisible: '.*MEDICATION TAKEN'
+
+# Snooze once — optimistic update: the remaining-count text refreshes instantly
+- tapOn:
+    label: 'Snooze for 15 minutes'
+- assertVisible: '.*remaining.*'
+
+# Confirm the dose — optimistic update: reminder resolves without waiting
+- tapOn:
+    label: 'Medication taken'
+- assertVisible: 'No medications due right now.'
+
+# The confirmed dose lands in history
+- tapOn: 'History'
+- assertVisible: 'Medication History'
+- assertVisible: 'Taken'

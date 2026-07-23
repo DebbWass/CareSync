@@ -11,11 +11,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Button, Menu, Text, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useCreateMedication } from '../../../src/hooks/useMedications';
 import { normalizeSupabaseError } from '../../../src/services/supabase/errors';
+import { DOSAGE_UNIT_KEYS, type DosageUnitKey } from '../../../src/constants/dosageUnits';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
 
@@ -28,7 +29,11 @@ export default function NewMedicationScreen() {
   }>();
 
   const [name, setName] = useState('');
-  const [dosage, setDosage] = useState('');
+  // Dosage is split into a free-text amount + a unit picked from a dropdown,
+  // then combined into the single `dosage` column on save (e.g. "500 mg").
+  const [amount, setAmount] = useState('');
+  const [unit, setUnit] = useState<DosageUnitKey | ''>('');
+  const [unitMenuVisible, setUnitMenuVisible] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [error, setError] = useState('');
 
@@ -39,8 +44,12 @@ export default function NewMedicationScreen() {
       setError(t('medications.form.nameRequired'));
       return;
     }
-    if (!dosage.trim()) {
-      setError(t('medications.form.dosageRequired'));
+    if (!amount.trim()) {
+      setError(t('medications.form.amountRequired'));
+      return;
+    }
+    if (!unit) {
+      setError(t('medications.form.unitRequired'));
       return;
     }
     if (!patientId) {
@@ -49,11 +58,12 @@ export default function NewMedicationScreen() {
     }
 
     setError('');
+    const dosage = `${amount.trim()} ${t(`medications.form.units.${unit}`)}`;
     createMutation.mutate(
       {
         patient_id: patientId,
         name: name.trim(),
-        dosage: dosage.trim(),
+        dosage,
         instructions: instructions.trim() || undefined,
       },
       {
@@ -106,15 +116,54 @@ export default function NewMedicationScreen() {
             placeholder={t('medications.form.namePlaceholder')}
           />
 
-          <TextInput
-            label={t('medications.form.dosageLabel')}
-            value={dosage}
-            onChangeText={setDosage}
-            mode="outlined"
-            style={styles.input}
-            accessibilityLabel={t('medications.form.dosageA11y')}
-            placeholder={t('medications.form.dosagePlaceholder')}
-          />
+          <View style={styles.dosageRow}>
+            <TextInput
+              label={t('medications.form.amountLabel')}
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+              mode="outlined"
+              style={[styles.input, styles.amountInput]}
+              accessibilityLabel={t('medications.form.amountA11y')}
+              placeholder={t('medications.form.amountPlaceholder')}
+            />
+            <View style={styles.unitColumn}>
+              <Menu
+                visible={unitMenuVisible}
+                onDismiss={() => setUnitMenuVisible(false)}
+                anchor={
+                  <TouchableOpacity
+                    onPress={() => setUnitMenuVisible(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('medications.form.unitA11y')}
+                  >
+                    <TextInput
+                      label={t('medications.form.unitLabel')}
+                      value={unit ? t(`medications.form.units.${unit}`) : ''}
+                      placeholder={t('medications.form.unitPlaceholder')}
+                      mode="outlined"
+                      editable={false}
+                      pointerEvents="none"
+                      style={styles.input}
+                      right={<TextInput.Icon icon="menu-down" />}
+                    />
+                  </TouchableOpacity>
+                }
+              >
+                {DOSAGE_UNIT_KEYS.map((key) => (
+                  <Menu.Item
+                    key={key}
+                    onPress={() => {
+                      setUnit(key);
+                      setUnitMenuVisible(false);
+                    }}
+                    title={t(`medications.form.units.${key}`)}
+                    titleStyle={styles.unitItem}
+                  />
+                ))}
+              </Menu>
+            </View>
+          </View>
 
           <TextInput
             label={t('medications.form.instructionsLabel')}
@@ -196,6 +245,20 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: Colors.light.background,
+  },
+  dosageRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  amountInput: {
+    flex: 1,
+  },
+  unitColumn: {
+    flex: 1,
+  },
+  unitItem: {
+    fontSize: FontSizes.caregiver.body,
   },
   errorText: {
     color: Colors.light.danger,

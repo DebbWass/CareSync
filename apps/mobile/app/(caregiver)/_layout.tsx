@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text as RNText } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../src/constants/colors';
 import { signOut } from '../../src/services/supabase/auth';
@@ -45,7 +45,23 @@ function HeaderSignOutButton() {
   );
 }
 
+function HeaderSettingsButton() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => router.push('/(caregiver)/settings')}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={t('settings.openA11y')}
+    >
+      <MaterialCommunityIcons name="cog-outline" size={22} color={Colors.light.primary} />
+    </Pressable>
+  );
+}
+
 export default function CaregiverLayout() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarStyle = useMemo(
     () => ({
@@ -65,6 +81,8 @@ export default function CaregiverLayout() {
           color: Colors.light.onBackground,
           fontWeight: '700',
         },
+        headerLeft: () => <HeaderSettingsButton />,
+        headerLeftContainerStyle: { paddingStart: 16 },
         headerRight: () => <HeaderSignOutButton />,
         tabBarActiveTintColor: Colors.light.primary,
         tabBarInactiveTintColor: Colors.light.secondary,
@@ -78,59 +96,77 @@ export default function CaregiverLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: t('tabs.dashboard'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="view-dashboard-outline" color={color} size={size} />
           ),
-          tabBarAccessibilityLabel: 'Dashboard — patient adherence overview',
+          tabBarAccessibilityLabel: t('tabs.dashboardA11y'),
         }}
       />
       <Tabs.Screen
         name="medications/index"
         options={{
-          title: 'Medications',
+          title: t('tabs.medications'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="pill" color={color} size={size} />
           ),
-          tabBarAccessibilityLabel: 'Medications — manage patient medications',
+          tabBarAccessibilityLabel: t('tabs.medicationsA11y'),
         }}
       />
       <Tabs.Screen
         name="schedules/index"
         options={{
-          title: 'Schedules',
+          title: t('tabs.schedules'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="calendar-clock" color={color} size={size} />
           ),
-          tabBarAccessibilityLabel: 'Schedules — define medication timings',
+          tabBarAccessibilityLabel: t('tabs.schedulesA11y'),
         }}
       />
       <Tabs.Screen
         name="patients/index"
         options={{
-          title: 'Patients',
+          title: t('tabs.patients'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account-group-outline" color={color} size={size} />
           ),
-          tabBarAccessibilityLabel: 'Patients — manage your linked patients',
+          tabBarAccessibilityLabel: t('tabs.patientsA11y'),
         }}
       />
       <Tabs.Screen
         name="alerts"
         options={{
-          title: 'Alerts',
+          title: t('tabs.alerts'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="bell-outline" color={color} size={size} />
           ),
-          tabBarAccessibilityLabel: 'Alerts — missed medication notifications',
+          tabBarAccessibilityLabel: t('tabs.alertsA11y'),
         }}
       />
       {/* Detail/form screens live inside the tab navigator but must not render
           as tab buttons of their own — hide them from the tab bar. */}
-      <Tabs.Screen name="medications/new" options={{ href: null, title: 'Add Medication' }} />
-      <Tabs.Screen name="medications/[id]" options={{ href: null, title: 'Medication' }} />
-      <Tabs.Screen name="schedules/new" options={{ href: null, title: 'Add Schedule' }} />
-      <Tabs.Screen name="schedules/[id]" options={{ href: null, title: 'Schedule' }} />
+      <Tabs.Screen name="settings" options={{ href: null, title: t('settings.title') }} />
+      <Tabs.Screen
+        name="messages/[patientId]"
+        options={{ href: null, title: t('messages.title') }}
+      />
+      <Tabs.Screen
+        name="patients/[patientId]"
+        options={{ href: null, title: t('analytics.title') }}
+      />
+      <Tabs.Screen
+        name="medications/new"
+        options={{ href: null, title: t('medications.form.addTitle') }}
+      />
+      <Tabs.Screen
+        name="medications/[id]"
+        options={{ href: null, title: t('medications.title') }}
+      />
+      <Tabs.Screen
+        name="schedules/new"
+        options={{ href: null, title: t('schedules.form.addTitle') }}
+      />
+      <Tabs.Screen name="schedules/[id]" options={{ href: null, title: t('schedules.title') }} />
     </Tabs>
   );
 }

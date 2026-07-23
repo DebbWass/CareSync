@@ -242,6 +242,67 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          body: string
+          caregiver_id: string
+          client_id: string
+          created_at: string
+          delivered_at: string | null
+          id: string
+          patient_id: string
+          read_at: string | null
+          sender_id: string
+          status: Database["public"]["Enums"]["message_status"]
+        }
+        Insert: {
+          body: string
+          caregiver_id: string
+          client_id: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          patient_id: string
+          read_at?: string | null
+          sender_id: string
+          status?: Database["public"]["Enums"]["message_status"]
+        }
+        Update: {
+          body?: string
+          caregiver_id?: string
+          client_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          patient_id?: string
+          read_at?: string | null
+          sender_id?: string
+          status?: Database["public"]["Enums"]["message_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_caregiver_relationships: {
         Row: {
           caregiver_id: string
@@ -354,7 +415,49 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adherence_stats: {
+        Args: { p_days?: number; p_patient_id: string }
+        Returns: {
+          bucket_day: string
+          taken_doses: number
+          total_doses: number
+        }[]
+      }
+      email_exists: { Args: { p_email: string }; Returns: boolean }
+      find_patient_id_by_email: { Args: { p_email: string }; Returns: string }
+      get_patient_invitations: {
+        Args: Record<string, never>
+        Returns: {
+          relationship_id: string
+          caregiver_id: string
+          caregiver_name: string
+          caregiver_email: string
+          created_at: string
+        }[]
+      }
       is_caregiver_for: { Args: { patient: string }; Returns: boolean }
+      snooze_event: {
+        Args: { p_event_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          medication_id: string
+          notes: string | null
+          notified_at: string | null
+          patient_id: string
+          schedule_id: string
+          scheduled_time: string
+          snooze_count: number
+          status: Database["public"]["Enums"]["event_status"]
+          taken_time: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "medication_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       alert_type:
@@ -369,6 +472,7 @@ export type Database = {
         | "three_times_daily"
         | "weekly"
         | "custom"
+      message_status: "sent" | "delivered" | "read"
       push_platform: "ios" | "android"
       relationship_status: "pending" | "active" | "revoked"
       user_role: "patient" | "caregiver"
@@ -516,6 +620,7 @@ export const Constants = {
         "weekly",
         "custom",
       ],
+      message_status: ["sent", "delivered", "read"],
       push_platform: ["ios", "android"],
       relationship_status: ["pending", "active", "revoked"],
       user_role: ["patient", "caregiver"],

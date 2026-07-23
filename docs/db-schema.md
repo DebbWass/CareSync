@@ -45,9 +45,13 @@ public.users ──< push_tokens  (one row per device)
 | `20260701000005_indexes.sql` | 11 performance indexes + `idx_alerts_dedup` unique index |
 | `20260701000006_realtime.sql` | `alerts` and `medication_events` added to the `supabase_realtime` publication |
 | `20260701000007_cron_webhooks.sql` | pg_cron job (scheduler every 5 min) + caregiver-alert webhook trigger |
-
-Later milestones append: `messages` (urgent messaging, M8) and adherence
-views (analytics, M10).
+| `20260707000001_event_notified_at.sql` | `medication_events.notified_at` (one push per dose) + partial index (M4) |
+| `20260707000002_snooze_event_rpc.sql` | `snooze_event(uuid)` atomic snooze RPC, SECURITY INVOKER (M5) |
+| `20260708000001_messages.sql` | `messages`: idempotent sends, monotonic receipts, RLS, realtime, INSERT webhook → message-push (M8) |
+| `20260708000002_adherence_stats.sql` | `adherence_stats(uuid, int)` analytics RPC — patient-local day bucketing, resolved-only denominator, SECURITY INVOKER (M10) |
+| `20260722000001_email_exists_rpc.sql` | `email_exists(text)` — SECURITY DEFINER, granted to **anon**; lets the pre-login forgot-password / register screens report whether an account exists (M11). **Deliberately enumerable** — an explicit product decision that overrides GoTrue's anti-enumeration default (see the migration header to revert). |
+| `20260722000002_find_patient_for_invite.sql` | `find_patient_id_by_email(text)` — SECURITY DEFINER, granted to **authenticated**; resolves a `role='patient'` user id by email for the invite flow. Needed because `users_select` RLS hides patients a caregiver isn't linked to yet, which otherwise made "invite by email" always fail (M11). Returns only the id. |
+| `20260723000001_patient_invitations.sql` | `get_patient_invitations()` — SECURITY DEFINER, granted to **authenticated**; returns the calling patient's PENDING invitations joined to the inviting caregiver's name/email (scoped to `auth.uid()`). Needed because `users_select` RLS hides the caregiver profile until the link is active, so the patient couldn't see who invited them (M11). Accept/decline/cancel reuse the existing `relationships_update` RLS. |
 
 **Dev loop:** `supabase db reset` re-runs all migrations and applies
 `supabase/seed/seed.sql`. `supabase test db` runs the pgTAP suite in
@@ -84,6 +88,7 @@ views (analytics, M10).
 | status | event_status | NO | 'pending' | pending / taken / snoozed / missed |
 | snooze_count | INTEGER | NO | 0 | CHECK >= 0 |
 | notes | TEXT | YES | NULL | Optional notes |
+| notified_at | TIMESTAMPTZ | YES | NULL | When the reminder push was handed to the provider (M4) |
 | created_at | TIMESTAMPTZ | NO | NOW() | Row creation time |
 
 **Status lifecycle:**
@@ -97,8 +102,17 @@ snoozed → missed    (scheduler marks after snooze_count >= SNOOZE_LIMIT)
 
 **Immutability (trigger-enforced, applies to every role including
 service_role):** rows can never be DELETEd, and UPDATEs may only change
-`status`, `taken_time`, `snooze_count`, `notes`. The identity of a dose —
-what, for whom, when — is frozen at creation.
+`status`, `taken_time`, `snooze_count`, `notes`, `notified_at`. The identity
+of a dose — what, for whom, when — is frozen at creation.
+
+**Snoozing is atomic (M5):** the client calls the `snooze_event(uuid)` RPC,
+a single `UPDATE … SET snooze_count = snooze_count + 1` guarded to
+`pending`/`snoozed` status. SECURITY INVOKER, so the patient-only UPDATE
+policy still applies inside the function. Returns the updated row, or NULL
+when the dose was no longer snoozable (the client refetches and shows the
+true state). The SNOOZE_LIMIT cap deliberately stays in app config — RLS
+already lets a patient write `snooze_count` directly, so a SQL cap would add
+duplication, not security.
 
 ---
 
@@ -117,6 +131,7 @@ key and can only reach rows its policies allow; Edge Functions use
 | medication_events | patient or active caregiver | service_role only | patient (own) | — (never) |
 | alerts | owning caregiver | service_role only | owning caregiver (mark read) | — |
 | push_tokens | self | self | — | self |
+| messages | either side of the pair | sender (active relationship only, no forgery) | recipient (receipts only) | — (never, trigger-blocked) |
 
 `is_caregiver_for(patient UUID)` — SECURITY DEFINER + STABLE — is the single
 point where "active caregiver" is defined (`status = 'active'`; pending and
@@ -132,6 +147,13 @@ revoked relationships grant nothing).
   (`notify_caregiver_alert`) POSTs to the caregiver-alert Edge Function, and
   only for the transitions that matter (became `missed`, or `snooze_count`
   crossed the limit).
+- **Webhook (M8):** an `AFTER INSERT` trigger on `messages`
+  (`notify_message_push`) POSTs to the message-push Edge Function, which
+  pushes `{type:'message', message_id}` (no body, no names — PHI rule) to
+  the recipient. Realtime note: `messages` has `REPLICA IDENTITY FULL` and
+  is in the `supabase_realtime` publication; clients MUST call
+  `realtime.setAuth(token)` before subscribing or RLS silently withholds
+  events (verified live — `npm run verify:realtime`).
 
 Both read two database GUCs **at runtime** (no secrets in migrations):
 
@@ -174,6 +196,16 @@ never collide in a unique index.)
 The medication must outlive the caregiver account that created it — the
 patient still takes it. Deleting the *patient* cascades everything, which is
 correct.
+
+**Why is adherence a SECURITY INVOKER function instead of a view or a
+SECURITY DEFINER RPC?** `adherence_stats(patient_id, days)` is a thin projection
+over `medication_events`. Running it as INVOKER means the caller's RLS decides
+which rows it can see — a caregiver gets their active patients, a patient gets
+themselves, and an arbitrary id returns no rows. A DEFINER function would have
+to re-implement `is_caregiver_for` access control by hand; INVOKER inherits it
+for free. It buckets by `(scheduled_time AT TIME ZONE users.timezone)::date` so
+a 23:30 local dose lands on the patient's local day, not the UTC day, and counts
+only resolved doses (taken + missed) — a pending dose due tonight is not a miss.
 
 **Why triggers for immutability instead of just "no RLS policy"?**
 RLS does not bind service_role. The audit-log guarantee has to hold even

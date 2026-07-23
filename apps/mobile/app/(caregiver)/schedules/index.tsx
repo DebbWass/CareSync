@@ -2,12 +2,13 @@
  * Schedule list — all active schedules for a patient, grouped by medication.
  * Route params: patientId, patientName
  */
-import { SectionList, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import { I18nManager, SectionList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FAB, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSchedulesForPatient } from '../../../src/hooks/useSchedules';
-import { DAY_LABELS, formatDays, formatTimes } from '../../../src/utils/scheduleUtils';
+import { dayLabels, formatDays, formatTimes } from '../../../src/utils/scheduleUtils';
+import { forwardChevron } from '../../../src/utils/rtl';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { Colors } from '../../../src/constants/colors';
 import { FontSizes, FontWeights } from '../../../src/constants/typography';
@@ -54,16 +55,9 @@ export default function ScheduleListScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {/* Header — back button removed (hardware/gesture back handles it); the
+          add action lives in the floating button below. */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerBtn}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.backLabel')}
-        >
-          <Text style={styles.headerBtnText}>{t('common.back')}</Text>
-        </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>{t('schedules.title')}</Text>
           {patientName ? (
@@ -72,14 +66,6 @@ export default function ScheduleListScreen() {
             </Text>
           ) : null}
         </View>
-        <TouchableOpacity
-          onPress={() => handleAdd()}
-          style={styles.headerBtn}
-          accessibilityRole="button"
-          accessibilityLabel={t('schedules.addLabel')}
-        >
-          <Text style={[styles.headerBtnText, styles.addText]}>{t('common.add')}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -124,6 +110,16 @@ export default function ScheduleListScreen() {
           accessibilityLabel={t('schedules.listLabel')}
         />
       )}
+
+      {/* Add schedule — floating action button. Trailing bottom corner:
+          right in LTR (English), left in RTL (Hebrew). */}
+      <FAB
+        icon="plus"
+        onPress={() => handleAdd()}
+        color="#FFFFFF"
+        style={[styles.fab, I18nManager.isRTL ? styles.fabStart : styles.fabEnd]}
+        accessibilityLabel={t('schedules.addLabel')}
+      />
     </View>
   );
 }
@@ -155,7 +151,7 @@ function ScheduleRow({
         <Text style={styles.timesText}>🕐 {timesLabel}</Text>
         {schedule.days_of_week && schedule.days_of_week.length > 0 ? (
           <View style={styles.daysRow}>
-            {DAY_LABELS.map((label, i) => (
+            {dayLabels().map((label, i) => (
               <View
                 key={i}
                 style={[styles.dayChip, schedule.days_of_week!.includes(i) && styles.dayChipActive]}
@@ -178,7 +174,7 @@ function ScheduleRow({
             : t('schedules.dateOngoing', { start: schedule.start_date })}
         </Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={styles.chevron}>{forwardChevron()}</Text>
     </TouchableOpacity>
   );
 }
@@ -196,14 +192,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
   },
-  headerBtn: { minWidth: 60, paddingVertical: 6 },
-  headerBtnText: {
-    fontSize: FontSizes.caregiver.body,
-    color: '#FFFFFF',
-    fontWeight: FontWeights.semibold,
-  },
-  addText: { textAlign: 'right' },
   headerCenter: { flex: 1, alignItems: 'center' },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 28,
+  },
+  fabEnd: { right: 24 },
+  fabStart: { left: 24 },
   title: {
     fontSize: FontSizes.caregiver.headline,
     fontWeight: FontWeights.bold,
@@ -215,7 +212,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     marginTop: 2,
   },
-  list: { padding: 16 },
+  list: { padding: 16, paddingBottom: 96 },
   listEmpty: { flex: 1 },
   center: {
     flex: 1,
@@ -278,7 +275,7 @@ const styles = StyleSheet.create({
     color: Colors.light.secondary,
     marginTop: 2,
   },
-  chevron: { fontSize: 24, color: Colors.light.secondary, marginLeft: 8 },
+  chevron: { fontSize: 24, color: Colors.light.secondary, marginStart: 8 },
   emptyTitle: {
     fontSize: FontSizes.caregiver.headline,
     fontWeight: FontWeights.bold,

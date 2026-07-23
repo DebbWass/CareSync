@@ -1,0 +1,28 @@
+appId: host.exp.exponent
+name: Caregiver - Patient Adherence (M10)
+tags:
+  - release
+---
+- launchApp:
+    clearState: true
+
+# Login as caregiver
+- assertVisible: 'Sign In'
+- tapOn:
+    label: 'Email address'
+- inputText: ${CAREGIVER_EMAIL}
+- tapOn:
+    label: 'Password'
+- inputText: ${CAREGIVER_PASSWORD}
+- tapOn:
+    label: 'Sign in to CareSync'
+- assertVisible: 'Caregiver Dashboard'
+
+# Open the adherence trends screen via the patient-card adherence badge.
+# The badge's accessibility label is "Adherence <n> percent" (n varies with the
+# seed data), so match on the stable prefix.
+- tapOn: 'Adherence'
+
+# The trends screen: headline window label + the per-day trend section.
+- assertVisible: 'LAST 30 DAYS'
+- assertVisible: 'DAILY TREND'

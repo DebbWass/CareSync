@@ -7,8 +7,10 @@ Copy everything below the line into a brand-new Claude session started in
 
 You are continuing development of **CareSync**, a production-grade healthcare
 mobile app (Expo/React Native + Supabase) for Alzheimer's/elderly medication
-management. The project is mid-way through a 12-milestone production rebuild;
-milestones M0–M4 are complete and merged.
+management. The project is near the end of a 12-milestone production rebuild:
+**milestones M0–M10 are complete and merged into `develop`**, and **M11
+(offline resilience + release prep)** is in progress — its resilience core and
+several release-prep slices are merged, with the rest user-gated (see below).
 
 ## Before writing any code
 
@@ -59,22 +61,54 @@ milestones M0–M4 are complete and merged.
   migrations are append-only.
 - **Update documentation as you go**: extend `docs/` when features change
   behavior, keep `src/i18n/locales/en.json` complete for any new strings, and
-  **update `PROJECT_HANDOFF.md` (status, completed list, next tasks) at the
-  end of any significant work** — it must always let the next session start
-  cold.
+  **at the end of any significant work update BOTH `PROJECT_HANDOFF.md` (status,
+  completed list, next tasks) AND this `NEXT_SESSION_PROMPT.md` (the "What to do
+  first" section below)** — they must always let the next session start cold and
+  never point at already-finished work.
 
 ## What to do first
 
-1. If promotion PR #13 (`develop` → `main`) is still open, surface it to the
-   user.
-2. Start **Milestone M5 — the patient reminder experience** on branch
-   `feature/m5-patient-reminder` off `develop`, per the "Next Recommended
-   Tasks" section of PROJECT_HANDOFF.md: atomic `snoozeEvent` fix first, then
-   harden the patient screens (design system + elderly a11y + ErrorBanner +
-   `t()`), optimistic confirm/snooze, then end-to-end validation on a physical
-   EAS dev build (cron → push → tap → confirm → caregiver update, including
-   killed-app cold start), a new Maestro flow, and the user's device-profile
-   checkpoint.
+All 11 rebuild milestones have code, and **M11 release-prep is essentially
+built**. What's left is owner-executed (credentials, a device, personal content)
+— do NOT invent lower-value work; confirm scope before starting.
 
-Deliver M5 the way every prior milestone was delivered: reviewable commits, a
-PR into `develop` with a completion report in the body, all gates green.
+> **2026-07-22 — auth & i18n polish landed** on `feature/m11-release-prep-final`
+> (from device testing): fixed missing tab/header icons (`@expo/vector-icons`),
+> the launch-language race (`syncLanguageWithStore`), added Remember-me, hardened
+> unique-email signup, and added an explicit "account not found" on password
+> reset via the new `email_exists` RPC, fixed invite-patient-by-email
+> (RLS-blocked lookup → `find_patient_id_by_email` RPC), and added the
+> **patient-side invitation flow** (accept/decline card + caregiver Cancel +
+> cancel→re-invite revive, via `get_patient_invitations` RPC). 170 Jest green,
+> typecheck clean. See
+> PROJECT_HANDOFF.md "Auth & i18n polish" for detail. **Owner action still
+> needed for real reset emails — see (e) below.**
+
+1. Check open PRs (`gh pr list`). Merged this line of work: M10 (#21), M11 core
+   (#22), M11 runbook + audit triage (#23), M11 chaos smoke (#24). A later PR
+   carries the English + Hebrew user-guide drafts, the EAS store profile + steps,
+   the Maestro release suite, and the **audit-gate flip to blocking-on-critical**
+   — surface any still-open PR.
+2. What TRULY remains is owner-executed, so **ask/confirm before doing**:
+   (a) personalise + approve the user-guide drafts (`docs/user-guide.md` +
+   `docs/user-guide.he.md`) — esp. the patient/Hebrew wording; (b) the EAS
+   production build/submit (real credentials + `eas credentials` + env vars —
+   runbook §3); (c) device-validate the Maestro release suite (`.maestro/`,
+   needs a dev build); (d) the **Expo SDK 54→57 bump** — deferred; it clears the
+   last `ws` high so the audit gate can rise from `critical` to `high`. Do NOT
+   run `npm audit fix --omit=dev` (prunes devDependencies, breaks the toolchain);
+   (e) **enable real password-reset emails (SMTP)** — code/flow are ready and
+   verified against local Mailpit; the owner must configure custom SMTP in the
+   hosted dashboard, `supabase db push` the migrations (incl.
+   `20260722000001_email_exists_rpc.sql`), and add the `caresync://reset-password`
+   redirect URL. Full runbook: `docs/deployment.md` → "Enable password-reset
+   emails (SMTP)".
+3. The one manual gate that unblocks a release stays with the user: the
+   **physical-device validation pass** (EAS dev build) covering the reminder loop
+   incl. killed-app cold start, messaging, Hebrew/RTL, accessibility (font scale
+   ≥1.3, TalkBack, in Hebrew), and the M11 airplane-mode confirm → reconnect →
+   original-tap-time sync — on the father's device profile.
+
+Deliver every milestone the way prior ones were delivered: reviewable commits, a
+PR into `develop` with a completion report in the body, all 8 CI jobs green, and
+the docs (`PROJECT_HANDOFF.md` + this file) updated at the end.

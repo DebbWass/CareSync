@@ -3,11 +3,15 @@
  * Serves as the navigation hub for the caregiver side of the app.
  */
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { forwardArrow } from '../../src/utils/rtl';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useLinkedPatients } from '../../src/hooks/usePatients';
 import { useUnreadAlertCount } from '../../src/hooks/useAlerts';
+import { useAdherence } from '../../src/hooks/useAdherence';
+import { summarizeAdherence } from '../../src/services/supabase/analytics';
+import { adherenceTone, ADHERENCE_TONE_ICONS } from '../../src/utils/adherence';
 import { useAuthStore } from '../../src/store/authStore';
 import { signOut } from '../../src/services/supabase/auth';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
@@ -94,6 +98,18 @@ export default function CaregiverDashboard() {
                   params: { patientId: rel.patient.id, patientName: rel.patient.name },
                 })
               }
+              onPressMessage={() =>
+                router.push({
+                  pathname: '/(caregiver)/messages/[patientId]',
+                  params: { patientId: rel.patient.id, patientName: rel.patient.name },
+                })
+              }
+              onPressAdherence={() =>
+                router.push({
+                  pathname: '/(caregiver)/patients/[patientId]',
+                  params: { patientId: rel.patient.id, patientName: rel.patient.name },
+                })
+              }
             />
           ))
         )}
@@ -163,9 +179,17 @@ interface PatientCardProps {
   name: string;
   patientId: string;
   onPressMedications: () => void;
+  onPressMessage: () => void;
+  onPressAdherence: () => void;
 }
 
-function PatientCard({ name, onPressMedications }: PatientCardProps) {
+function PatientCard({
+  name,
+  patientId,
+  onPressMedications,
+  onPressMessage,
+  onPressAdherence,
+}: PatientCardProps) {
   const { t } = useTranslation();
   return (
     <TouchableOpacity
@@ -179,9 +203,70 @@ function PatientCard({ name, onPressMedications }: PatientCardProps) {
         <Text style={styles.patientAvatarText}>{name.charAt(0).toUpperCase()}</Text>
       </View>
       <View style={styles.patientInfo}>
-        <Text style={styles.patientName}>{name}</Text>
+        <Text style={styles.patientName} numberOfLines={1}>
+          {name}
+        </Text>
         <Text style={styles.patientSubtext}>{t('dashboard.patientCardSubtext')}</Text>
       </View>
+      <AdherenceBadge patientId={patientId} onPress={onPressAdherence} />
+      <TouchableOpacity
+        style={styles.messageButton}
+        onPress={onPressMessage}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={t('messages.openThreadA11y', { name })}
+      >
+        <Text style={styles.messageButtonIcon}>💬</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+// Compact adherence pill on each patient card. Fetches its own window so cards
+// load independently; icon + number together (never color alone) carry the tone.
+function AdherenceBadge({ patientId, onPress }: { patientId: string; onPress: () => void }) {
+  const { t } = useTranslation();
+  const { data: days, isLoading } = useAdherence(patientId);
+  const summary = days ? summarizeAdherence(days) : null;
+
+  let inner: React.ReactNode;
+  let a11yLabel: string;
+
+  if (isLoading || !summary) {
+    inner = <ActivityIndicator size={16} color={Colors.light.secondary} />;
+    a11yLabel = t('analytics.badgeLoadingA11y');
+  } else if (summary.percent === null) {
+    inner = <Text style={styles.adherenceNoData}>{t('analytics.noData')}</Text>;
+    a11yLabel = t('analytics.badgeNoDataA11y');
+  } else {
+    const tone = adherenceTone(summary.percent);
+    const color =
+      tone === 'good'
+        ? Colors.light.confirm
+        : tone === 'fair'
+          ? Colors.light.snooze
+          : Colors.light.danger;
+    inner = (
+      <>
+        <Text style={[styles.adherenceIcon, { color }]}>{ADHERENCE_TONE_ICONS[tone]}</Text>
+        <Text style={[styles.adherencePct, { color }]}>
+          {t('analytics.percent', { percent: summary.percent })}
+        </Text>
+      </>
+    );
+    a11yLabel = t('analytics.badgeA11y', { percent: summary.percent });
+  }
+
+  return (
+    <TouchableOpacity
+      style={styles.adherenceBadge}
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel}
+      accessibilityHint={t('analytics.badgeHint')}
+    >
+      {inner}
     </TouchableOpacity>
   );
 }
@@ -197,7 +282,9 @@ function EmptyCard({ message, action, onPress }: EmptyCardProps) {
     <View style={styles.emptyCard}>
       <Text style={styles.emptyText}>{message}</Text>
       <TouchableOpacity onPress={onPress} accessibilityRole="button">
-        <Text style={styles.emptyAction}>{action} →</Text>
+        <Text style={styles.emptyAction}>
+          {action} {forwardArrow()}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -268,7 +355,7 @@ const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
     top: 2,
-    right: 2,
+    end: 2,
     backgroundColor: Colors.light.danger,
     borderRadius: 10,
     minWidth: 20,
@@ -316,6 +403,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  messageButton: {
+    minWidth: 48,
+    minHeight: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.background,
+  },
+  messageButtonIcon: {
+    fontSize: 22,
+  },
   patientAvatarText: {
     fontSize: 20,
     fontWeight: FontWeights.bold,
@@ -329,6 +429,33 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.caregiver.title,
     fontWeight: FontWeights.semibold,
     color: Colors.light.onBackground,
+    flexShrink: 1,
+  },
+  adherenceBadge: {
+    minHeight: 48,
+    minWidth: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.background,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+  },
+  adherenceIcon: {
+    fontSize: 15,
+    fontWeight: FontWeights.bold,
+  },
+  adherencePct: {
+    fontSize: FontSizes.caregiver.label,
+    fontWeight: FontWeights.bold,
+  },
+  adherenceNoData: {
+    fontSize: FontSizes.caregiver.label,
+    fontWeight: FontWeights.semibold,
+    color: Colors.light.secondary,
   },
   patientSubtext: {
     fontSize: FontSizes.caregiver.label,

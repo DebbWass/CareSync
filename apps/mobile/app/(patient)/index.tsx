@@ -4,31 +4,38 @@
  * Polls every 60 seconds for new events (see usePendingEvent).
  */
 import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import { ActivityIndicator } from 'react-native-paper';
 import { Link } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ReminderCard } from '../../src/components/patient/ReminderCard';
+import { PatientInvitations } from '../../src/components/patient/PatientInvitations';
+import { Text } from '../../src/components/ui/Text';
+import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import {
   useConfirmEvent,
   usePendingEvent,
   useSnoozeEvent,
 } from '../../src/hooks/useMedicationEvent';
+import { usePatientInvitations } from '../../src/hooks/usePatients';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors } from '../../src/constants/colors';
 import { FontSizes } from '../../src/constants/typography';
 
 export default function PatientHome() {
+  const { t } = useTranslation();
   const highContrast = useSettingsStore((s) => s.highContrastMode);
   const theme = highContrast ? Colors.highContrast : Colors.light;
 
-  const { data: event, isLoading, error } = usePendingEvent();
+  const { data: event, isLoading, error, refetch } = usePendingEvent();
+  const { data: invitations = [] } = usePatientInvitations();
   const confirm = useConfirmEvent();
   const snooze = useSnoozeEvent();
 
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.primary }]}>
-        <ActivityIndicator size="large" color={theme.onPrimary} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
@@ -36,10 +43,8 @@ export default function PatientHome() {
   // ── Error ───────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <Text style={[styles.errorText, { color: theme.danger }]} accessibilityRole="alert">
-          Could not load reminders. Please check your connection.
-        </Text>
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        <ErrorBanner error={error} onRetry={refetch} />
       </View>
     );
   }
@@ -47,42 +52,67 @@ export default function PatientHome() {
   // ── Active reminder ─────────────────────────────────────────────────────────
   if (event) {
     return (
-      <ReminderCard
-        event={event}
-        onConfirm={() => confirm.mutate(event.id)}
-        onSnooze={(minutes) => {
-          void minutes; // snooze duration passed to Edge Function via DB event
-          snooze.mutate(event.id);
-        }}
-        isConfirming={confirm.isPending}
-        isSnoozeing={snooze.isPending}
-      />
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        {/* A failed confirm/snooze rolls the card back — tell the patient why */}
+        <ErrorBanner error={confirm.error ?? snooze.error} />
+        <ReminderCard
+          event={event}
+          onConfirm={() => confirm.mutate(event.id)}
+          onSnooze={(minutes) => {
+            void minutes; // snooze duration passed to Edge Function via DB event
+            snooze.mutate(event.id);
+          }}
+          isConfirming={confirm.isPending}
+          isSnoozing={snooze.isPending}
+        />
+      </View>
+    );
+  }
+
+  // ── Pending caregiver invitations ────────────────────────────────────────────
+  // Shown only when no dose is due — a medication reminder always takes priority.
+  if (invitations.length > 0) {
+    return (
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        <PatientInvitations invitations={invitations} />
+      </View>
     );
   }
 
   // ── All clear ───────────────────────────────────────────────────────────────
   return (
     <View style={[styles.center, { backgroundColor: theme.background }]}>
-      <Text style={[styles.allClearIcon, { color: theme.confirm }]} accessibilityLabel="All clear">
+      <Text
+        size={72}
+        weight="bold"
+        color={theme.confirm}
+        accessibilityLabel={t('patient.home.allClearIconLabel')}
+      >
         ✓
       </Text>
       <Text
-        style={[styles.allClearTitle, { color: theme.onBackground }]}
+        size={FontSizes.patient.heading}
+        weight="bold"
+        color={theme.onBackground}
+        align="center"
         accessibilityRole="header"
       >
-        All good!
+        {t('patient.home.allClearTitle')}
       </Text>
-      <Text style={[styles.allClearBody, { color: theme.secondary }]}>
-        No medications due right now.
+      <Text size={FontSizes.patient.body} color={theme.secondary} align="center">
+        {t('patient.home.allClearBody')}
       </Text>
       <Link href="/(patient)/history" asChild>
         <Text
-          style={[styles.historyLink, { color: theme.primary }]}
+          size={FontSizes.patient.body}
+          weight="semibold"
+          color={theme.primary}
+          style={styles.historyLink}
           accessibilityRole="link"
-          accessibilityLabel="View medication history"
-          accessibilityHint="Double tap to open your past medication records"
+          accessibilityLabel={t('patient.home.historyLinkLabel')}
+          accessibilityHint={t('patient.home.historyLinkHint')}
         >
-          View history →
+          {t('patient.home.historyLink')}
         </Text>
       </Link>
     </View>
@@ -90,6 +120,9 @@ export default function PatientHome() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -97,30 +130,9 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 12,
   },
-  allClearIcon: {
-    fontSize: 72,
-    fontWeight: '700',
-    lineHeight: 80,
-  },
-  allClearTitle: {
-    fontSize: FontSizes.patient.heading,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  allClearBody: {
-    fontSize: FontSizes.patient.body,
-    textAlign: 'center',
-  },
   historyLink: {
-    fontSize: FontSizes.patient.body,
-    fontWeight: '600',
     marginTop: 16,
     paddingVertical: 8,
     paddingHorizontal: 16,
-  },
-  errorText: {
-    fontSize: FontSizes.patient.body,
-    textAlign: 'center',
-    lineHeight: FontSizes.patient.body * 1.5,
   },
 });

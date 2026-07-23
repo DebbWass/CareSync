@@ -3,31 +3,34 @@
  * Shows taken/missed/snoozed events, newest first.
  */
 import { FlatList, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
-import { useRouter } from 'expo-router';
-import { format } from 'date-fns';
+import { ActivityIndicator } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
+import { formatDateAtTime, formatLongDateTime, formatTime } from '../../src/utils/dateFormat';
+import { Text } from '../../src/components/ui/Text';
+import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { useEventHistory } from '../../src/hooks/useMedicationEvent';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors } from '../../src/constants/colors';
-import { FontSizes, FontWeights } from '../../src/constants/typography';
+import { FontSizes } from '../../src/constants/typography';
 import type { EventStatus, MedicationEvent } from '../../src/types';
 
 // ── Status badge config ────────────────────────────────────────────────────────
+// Icons pair with the localized label — color is never the only indicator.
 
-const STATUS_CONFIG: Record<EventStatus, { label: string; icon: string }> = {
-  taken: { label: 'Taken', icon: '✓' },
-  missed: { label: 'Missed', icon: '✗' },
-  snoozed: { label: 'Snoozed', icon: '⏱' },
-  pending: { label: 'Pending', icon: '…' },
+const STATUS_ICONS: Record<EventStatus, string> = {
+  taken: '✓',
+  missed: '✗',
+  snoozed: '⏱',
+  pending: '…',
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PatientHistory() {
-  const router = useRouter();
+  const { t } = useTranslation();
   const highContrast = useSettingsStore((s) => s.highContrastMode);
   const theme = highContrast ? Colors.highContrast : Colors.light;
-  const { data: events = [], isLoading, error } = useEventHistory();
+  const { data: events = [], isLoading, error, refetch } = useEventHistory();
 
   const getStatusColor = (status: EventStatus) => {
     switch (status) {
@@ -43,7 +46,8 @@ export default function PatientHistory() {
   };
 
   const renderItem = ({ item }: { item: MedicationEvent }) => {
-    const cfg = STATUS_CONFIG[item.status];
+    // Enum-keyed lookup so Hebrew (M6) is translation-only
+    const statusLabel = t(`patient.history.status.${item.status}`);
     const statusColor = getStatusColor(item.status);
 
     return (
@@ -51,42 +55,59 @@ export default function PatientHistory() {
         style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
         accessible
         accessibilityLabel={[
-          item.medications?.name ?? 'Unknown medication',
-          cfg.label,
-          format(new Date(item.scheduled_time), 'EEEE MMMM d, h:mm a'),
-          item.taken_time ? `taken at ${format(new Date(item.taken_time), 'h:mm a')}` : '',
+          item.medications?.name ?? t('patient.reminder.unknownMedication'),
+          statusLabel,
+          formatLongDateTime(item.scheduled_time),
+          item.taken_time
+            ? t('patient.history.takenAtA11y', {
+                time: formatTime(item.taken_time),
+              })
+            : '',
         ]
           .filter(Boolean)
           .join(', ')}
       >
         {/* Status badge */}
         <View style={[styles.badge, { backgroundColor: statusColor }]}>
-          <Text style={styles.badgeIcon}>{cfg.icon}</Text>
+          <Text size={20} weight="bold" color={theme.background}>
+            {STATUS_ICONS[item.status]}
+          </Text>
         </View>
 
         {/* Details */}
         <View style={styles.rowDetails}>
-          <Text style={[styles.medName, { color: theme.onSurface }]} numberOfLines={1}>
+          <Text
+            size={FontSizes.patient.instructions}
+            weight="bold"
+            color={theme.onSurface}
+            numberOfLines={1}
+          >
             {item.medications?.name ?? '—'}
           </Text>
 
-          <Text style={[styles.dosage, { color: theme.secondary }]}>
+          <Text size={FontSizes.patient.caption} color={theme.secondary}>
             {item.medications?.dosage ?? ''}
           </Text>
 
-          <Text style={[styles.time, { color: theme.secondary }]}>
-            Scheduled: {format(new Date(item.scheduled_time), 'MMM d, h:mm a')}
+          <Text size={14} color={theme.secondary} style={styles.time}>
+            {t('patient.history.scheduledAt', {
+              time: formatDateAtTime(item.scheduled_time),
+            })}
           </Text>
 
           {item.taken_time ? (
-            <Text style={[styles.time, { color: theme.confirm }]}>
-              Taken: {format(new Date(item.taken_time), 'h:mm a')}
+            <Text size={14} color={theme.confirm} style={styles.time}>
+              {t('patient.history.takenAt', {
+                time: formatTime(item.taken_time),
+              })}
             </Text>
           ) : null}
         </View>
 
         {/* Status label */}
-        <Text style={[styles.statusLabel, { color: statusColor }]}>{cfg.label}</Text>
+        <Text size={14} weight="semibold" color={statusColor} style={styles.statusLabel}>
+          {statusLabel}
+        </Text>
       </View>
     );
   };
@@ -100,16 +121,16 @@ export default function PatientHistory() {
           { backgroundColor: theme.background, borderBottomColor: theme.border },
         ]}
       >
+        {/* Back button removed — hardware/gesture back handles it; spacer keeps
+            the title centered against the trailing spacer. */}
+        <View style={styles.headerSpacer} />
         <Text
-          style={[styles.backButton, { color: theme.primary }]}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          size={FontSizes.patient.heading}
+          weight="bold"
+          color={theme.onBackground}
+          accessibilityRole="header"
         >
-          ← Back
-        </Text>
-        <Text style={[styles.title, { color: theme.onBackground }]} accessibilityRole="header">
-          Medication History
+          {t('patient.history.title')}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -120,11 +141,7 @@ export default function PatientHistory() {
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : error ? (
-        <View style={styles.center}>
-          <Text style={[styles.errorText, { color: theme.danger }]} accessibilityRole="alert">
-            Could not load history. Please check your connection.
-          </Text>
-        </View>
+        <ErrorBanner error={error} onRetry={refetch} />
       ) : (
         <FlatList
           data={events}
@@ -133,13 +150,13 @@ export default function PatientHistory() {
           contentContainerStyle={[styles.list, events.length === 0 && styles.listEmpty]}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={[styles.emptyText, { color: theme.secondary }]}>
-                No medication history yet.
+              <Text size={FontSizes.patient.body} color={theme.secondary} align="center">
+                {t('patient.history.empty')}
               </Text>
             </View>
           }
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-          accessibilityLabel="Medication history list"
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          accessibilityLabel={t('patient.history.listLabel')}
         />
       )}
     </View>
@@ -160,17 +177,6 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: 14,
     borderBottomWidth: 1,
-  },
-  backButton: {
-    fontSize: FontSizes.patient.body,
-    fontWeight: FontWeights.semibold,
-    paddingVertical: 8,
-    paddingRight: 16,
-    minWidth: 70,
-  },
-  title: {
-    fontSize: FontSizes.patient.heading,
-    fontWeight: FontWeights.bold,
   },
   headerSpacer: {
     minWidth: 70,
@@ -203,37 +209,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  badgeIcon: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: FontWeights.bold,
-  },
   rowDetails: {
     flex: 1,
     gap: 2,
   },
-  medName: {
-    fontSize: FontSizes.patient.instructions,
-    fontWeight: FontWeights.bold,
-  },
-  dosage: {
-    fontSize: FontSizes.patient.caption,
-  },
   time: {
-    fontSize: 14,
     marginTop: 2,
   },
   statusLabel: {
-    fontSize: 14,
-    fontWeight: FontWeights.semibold,
     flexShrink: 0,
   },
-  emptyText: {
-    fontSize: FontSizes.patient.body,
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: FontSizes.patient.body,
-    textAlign: 'center',
+  separator: {
+    height: 10,
   },
 });

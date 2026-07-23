@@ -35,6 +35,21 @@
       "dosageA11y": "Dosage, required",
       "dosagePlaceholder": "e.g. 500mg — 1 tablet",
       "dosageRequired": "Dosage is required (e.g. \"10mg\" or \"2 tablets\").",
+      "amountLabel": "Amount *",
+      "amountA11y": "Dosage amount, required",
+      "amountPlaceholder": "e.g. 1 or 500",
+      "amountRequired": "Amount is required (e.g. \"1\" or \"500\").",
+      "unitLabel": "Unit *",
+      "unitA11y": "Dosage unit, required. Double tap to choose.",
+      "unitPlaceholder": "Select unit",
+      "unitRequired": "Please choose a unit.",
+      "units": {
+        "pill": "Pill",
+        "drops": "Drops",
+        "mg": "mg",
+        "gram": "gram",
+        "ml": "ml"
+      },
       "instructionsLabel": "Instructions (optional)",
       "instructionsA11y": "Instructions, optional",
       "instructionsPlaceholder": "e.g. Take with food and water",
@@ -58,6 +73,66 @@
       "goBack": "← Go back"
     }
   },
+  "patient": {
+    "home": {
+      "allClearIconLabel": "All clear",
+      "allClearTitle": "All good!",
+      "allClearBody": "No medications due right now.",
+      "historyLink": "View history →",
+      "historyLinkLabel": "View medication history",
+      "historyLinkHint": "Double tap to open your past medication records"
+    },
+    "invitations": {
+      "title": "Care request",
+      "body": "{{name}} would like to help manage your medications.",
+      "accept": "✓ Accept",
+      "acceptA11y": "Accept care from {{name}}",
+      "acceptHint": "Double tap to let this person help manage your medications",
+      "decline": "Decline",
+      "declineA11y": "Decline care from {{name}}"
+    },
+    "reminder": {
+      "timeToTake": "TIME TO TAKE YOUR MEDICATION",
+      "scheduledAtA11y": "Scheduled at {{time}}",
+      "medicationA11y": "Medication: {{name}}",
+      "unknownMedication": "Unknown medication",
+      "dosageA11y": "Dosage: {{dosage}}",
+      "instructionsA11y": "Instructions: {{instructions}}",
+      "confirmButton": "✓ MEDICATION TAKEN",
+      "confirmLabel": "Medication taken",
+      "confirmHint": "Double tap to confirm you have taken this medication",
+      "snoozeTitle": "Remind me in:",
+      "snoozeMinutes": "{{minutes}} min",
+      "snoozeLabel": "Snooze for {{minutes}} minutes",
+      "snoozeHint": "Double tap to be reminded again in {{minutes}} minutes",
+      "snoozesRemaining_one": "1 snooze remaining — caregiver will be notified after this",
+      "snoozesRemaining_other": "{{count}} snoozes remaining",
+      "snoozesRemainingA11y_one": "1 snooze remaining before your caregiver is notified",
+      "snoozesRemainingA11y_other": "{{count}} snoozes remaining before your caregiver is notified",
+      "snoozeLimitReached": "⚠ Snooze limit reached — your caregiver has been notified",
+      "snoozeLimitReachedA11y": "Snooze limit reached. Your caregiver has been notified.",
+      "notFoundTitle": "Reminder not found",
+      "notFoundBody": "This reminder may have already been confirmed or expired.",
+      "alreadyTakenTitle": "Already confirmed!",
+      "alreadyTakenBody": "This medication was recorded as taken.",
+      "goHome": "← Go home",
+      "goHomeLabel": "Go to home"
+    },
+    "history": {
+      "title": "Medication History",
+      "listLabel": "Medication history list",
+      "empty": "No medication history yet.",
+      "scheduledAt": "Scheduled: {{time}}",
+      "takenAt": "Taken: {{time}}",
+      "takenAtA11y": "taken at {{time}}",
+      "status": {
+        "taken": "Taken",
+        "missed": "Missed",
+        "snoozed": "Snoozed",
+        "pending": "Pending"
+      }
+    }
+  },
   "errors": {
     "network": "No connection. Please check your internet and try again.",
     "auth": "Your session has expired. Please sign in again.",
@@ -65,7 +140,81 @@
     "notFound": "This item could not be found.",
     "conflict": "This already exists.",
     "unknown": "Something went wrong. Please try again.",
-    "retryHint": "Tries to load the information again"
+    "invalidCredentials": "Email or password is incorrect.",
+    "emailInUse": "An account with this email already exists.",
+    "weakPassword": "Password must be at least 8 characters.",
+    "samePassword": "The new password must be different from your current one.",
+    "rateLimit": "Too many attempts. Please wait a minute and try again.",
+    "expiredLink": "This link has expired. Please request a new one.",
+    "retryHint": "Tries to load the information again",
+    "boundary": {
+      "title": "Something went wrong",
+      "message": "The app ran into a problem. Your medication data is safe. Tap below to continue.",
+      "retry": "Try again"
+    }
+  },
+  "auth": {
+    "login": {
+      "tagline": "Medication management for caregivers and patients",
+      "emailLabel": "Email",
+      "emailA11y": "Email address",
+      "passwordLabel": "Password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "signIn": "Sign In",
+      "signInA11y": "Sign in to CareSync",
+      "signInHint": "Double tap to sign in with your email and password",
+      "fillAllFields": "Please fill in all fields.",
+      "noAccount": "Don't have an account? ",
+      "registerLink": "Register",
+      "forgotLink": "Forgot password?",
+      "rememberMe": "Remember me",
+      "rememberMeHint": "Keeps your email and password filled in and keeps you signed in on this device"
+    },
+    "register": {
+      "subtitle": "Create your account",
+      "nameLabel": "Full Name",
+      "nameA11y": "Full name",
+      "roleLabel": "I am a:",
+      "roleCaregiver": "Caregiver",
+      "roleCaregiverDesc": "I manage medications for a patient",
+      "rolePatient": "Patient",
+      "rolePatientDesc": "I receive medication reminders",
+      "createAccount": "Create Account",
+      "createAccountA11y": "Create CareSync account",
+      "createAccountHint": "Double tap to register with the information above",
+      "passwordTooShort": "Password must be at least {{min}} characters.",
+      "haveAccount": "Already have an account? ",
+      "signInLink": "Sign In"
+    },
+    "forgot": {
+      "title": "Reset Password",
+      "subtitle": "Enter your account email and we'll send you a reset link.",
+      "sendButton": "Send Reset Link",
+      "sendA11y": "Send password reset link",
+      "enterEmail": "Enter an email address.",
+      "noAccount": "No account was found for this email. Check the address or create a new account.",
+      "sentTitle": "Check your email",
+      "sentBody": "A password reset link is on its way to {{email}}. Open it on this device.",
+      "backToLogin": "← Back to sign in",
+      "backToLoginA11y": "Back to the sign-in screen"
+    },
+    "reset": {
+      "title": "Choose a New Password",
+      "newPasswordLabel": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "saveButton": "Save New Password",
+      "saveA11y": "Save new password",
+      "mismatch": "Passwords do not match.",
+      "successTitle": "Password updated!",
+      "successBody": "You are signed in with your new password.",
+      "continueButton": "Continue",
+      "continueA11y": "Continue to the app",
+      "invalidTitle": "Link not valid",
+      "invalidBody": "This reset link is missing or was already used. Request a new one from the sign-in screen.",
+      "requestNew": "Request a new link",
+      "requestNewA11y": "Request a new password reset link"
+    }
   },
   "dashboard": {
     "greeting": "Hello, {{name}}",
@@ -128,7 +277,11 @@
     "removeConfirm": "Remove",
     "removeFailed": "Could not remove the patient",
     "viewMedsLabel": "View medications for {{name}}",
-    "removeLabel": "Remove {{name}}"
+    "removeLabel": "Remove {{name}}",
+    "cancelInviteTitle": "Cancel invitation?",
+    "cancelInviteMessage": "This invitation will be withdrawn. You can invite this patient again later.",
+    "cancelInviteConfirm": "Cancel invitation",
+    "cancelInviteA11y": "Cancel this pending invitation"
   },
   "schedules": {
     "title": "Schedules",
@@ -143,6 +296,16 @@
     "unknownMedication": "Unknown",
     "dateOngoing": "From {{start}} (ongoing)",
     "dateRange": "From {{start}} to {{end}}",
+    "everyDay": "Every day",
+    "days": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
     "frequency": {
       "daily": "Daily",
       "twice_daily": "Twice daily",
@@ -189,13 +352,85 @@
       "goBack": "← Go back"
     }
   },
+  "messages": {
+    "title": "Messages",
+    "popupLabel": "URGENT MESSAGE",
+    "fromName": "From {{name}}",
+    "fromCaregiver": "From your caregiver",
+    "bodyA11y": "Message: {{body}}",
+    "acknowledge": "✓ GOT IT",
+    "acknowledgeLabel": "Got it",
+    "acknowledgeHint": "Double tap to confirm you have read this message",
+    "notFoundTitle": "Message not found",
+    "threadWith": "Messages — {{name}}",
+    "openThreadA11y": "Send an urgent message to {{name}}",
+    "outboxPending": "Some messages are waiting for a connection — they will send automatically.",
+    "empty": "No messages yet. Send the first one.",
+    "listA11y": "Message thread",
+    "placeholder": "Type an urgent message…",
+    "placeholderA11y": "Urgent message text",
+    "send": "Send",
+    "sendA11y": "Send urgent message",
+    "queuedOffline": "Waiting for connection",
+    "bubbleMineA11y": "You: {{body}}. {{receipt}}",
+    "bubbleTheirsA11y": "{{name}}: {{body}}",
+    "receipts": {
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "tabA11y": "Settings — language and display options",
+    "openA11y": "Open settings",
+    "languageTitle": "Language",
+    "languageGroupA11y": "Choose app language",
+    "languageDevice": "Device language",
+    "languageChangeFailed": "The language changed on this device, but could not be saved to your account. It will still be used here.",
+    "rtlRestartTitle": "Restart needed",
+    "rtlRestartMessage": "Switching between Hebrew and English changes the screen direction. The app will restart to apply it.",
+    "rtlRestartConfirm": "Restart now",
+    "displayTitle": "Display",
+    "highContrast": "High contrast",
+    "highContrastHint": "Stronger colors on a dark background for easier reading",
+    "textSize": "Text size",
+    "textSizeValue": "{{percent}}%",
+    "textSizeDecreaseA11y": "Make text smaller",
+    "textSizeIncreaseA11y": "Make text larger"
+  },
+  "analytics": {
+    "title": "Adherence",
+    "windowLabel": "LAST {{days}} DAYS",
+    "percent": "{{percent}}%",
+    "takenOfTotal": "{{taken}} of {{total}} doses taken",
+    "headlineA11y": "Adherence {{percent}} percent. {{taken}} of {{total}} doses taken over the last {{days}} days.",
+    "trendHeader": "DAILY TREND",
+    "trendA11y": "Daily adherence trend — scroll sideways to see each day",
+    "dayA11y": "{{date}}: {{percent}} percent, {{taken}} of {{total}} taken",
+    "legend": "Bar height is the share of doses taken that day",
+    "empty": "No dose history yet in the last {{days}} days.",
+    "noData": "—",
+    "badgeA11y": "Adherence {{percent}} percent",
+    "badgeHint": "Double tap to view adherence details",
+    "badgeLoadingA11y": "Loading adherence",
+    "badgeNoDataA11y": "No adherence data yet"
+  },
   "tabs": {
     "today": "Today",
+    "todayA11y": "Today — current medication reminders",
     "history": "History",
+    "historyA11y": "History — past medication events",
     "dashboard": "Dashboard",
+    "dashboardA11y": "Dashboard — patient adherence overview",
     "medications": "Medications",
+    "medicationsA11y": "Medications — manage patient medications",
     "schedules": "Schedules",
+    "schedulesA11y": "Schedules — define medication timings",
     "patients": "Patients",
-    "alerts": "Alerts"
+    "patientsA11y": "Patients — manage your linked patients",
+    "alerts": "Alerts",
+    "alertsA11y": "Alerts — missed medication notifications",
+    "settings": "Settings"
   }
 }

@@ -43,42 +43,41 @@ export async function getEventById(eventId: string): Promise<MedicationEvent | n
 /**
  * Mark an event as taken. Records the actual taken timestamp.
  * This is the primary patient action — must succeed reliably.
+ *
+ * `takenTime` lets the offline outbox replay a confirm with the ORIGINAL tap
+ * time (not the reconnect time), keeping the audit log honest. The
+ * `status <> 'taken'` guard makes replay idempotent: a dose already confirmed
+ * (here or on another device) matches zero rows and is left untouched, so a
+ * queued confirm can never clobber an existing taken_time.
  */
-export async function confirmEvent(eventId: string): Promise<void> {
+export async function confirmEvent(eventId: string, takenTime?: string): Promise<void> {
   const { error } = await supabase
     .from('medication_events')
     .update({
       status: 'taken',
-      taken_time: new Date().toISOString(),
+      taken_time: takenTime ?? new Date().toISOString(),
     })
-    .eq('id', eventId);
+    .eq('id', eventId)
+    .neq('status', 'taken');
 
   if (error) throw normalizeSupabaseError(error);
 }
 
 /**
- * Snooze an event: increment snooze_count and set status to 'snoozed'.
- * The Edge Function (caregiver-alert) will fire when snooze_count >= SNOOZE_LIMIT.
+ * Snooze an event via the atomic snooze_event RPC (single UPDATE with
+ * snooze_count = snooze_count + 1 — two rapid taps can no longer read the
+ * same count and lose an increment, which would have delayed the caregiver
+ * alert that fires at SNOOZE_LIMIT).
+ *
+ * Returns the updated row, or null when the event was no longer snoozable
+ * (already taken/missed, e.g. confirmed on another device) — a legitimate
+ * outcome, not a failure: callers refetch and render the true state.
  */
-export async function snoozeEvent(eventId: string): Promise<void> {
-  // Read current count first to increment atomically
-  const { data, error: fetchError } = await supabase
-    .from('medication_events')
-    .select('snooze_count')
-    .eq('id', eventId)
-    .single();
-
-  if (fetchError) throw normalizeSupabaseError(fetchError);
-
-  const { error } = await supabase
-    .from('medication_events')
-    .update({
-      status: 'snoozed',
-      snooze_count: (data.snooze_count ?? 0) + 1,
-    })
-    .eq('id', eventId);
+export async function snoozeEvent(eventId: string): Promise<MedicationEvent | null> {
+  const { data, error } = await supabase.rpc('snooze_event', { p_event_id: eventId });
 
   if (error) throw normalizeSupabaseError(error);
+  return data as MedicationEvent | null;
 }
 
 /**

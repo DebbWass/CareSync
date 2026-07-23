@@ -16,7 +16,8 @@ name: Caregiver - Add and Remove Medication
     label: 'Sign in to CareSync'
 - assertVisible: 'Caregiver Dashboard'
 
-# Navigate to medications via a patient card
+# Navigate to the Medications tab, then open the add form
+- tapOn: 'Medications'
 - tapOn:
     label: 'Add medication'
 

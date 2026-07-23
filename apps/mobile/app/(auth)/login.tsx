@@ -1,30 +1,74 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { useEffect, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Button, Checkbox, Text, TextInput } from 'react-native-paper';
 import { Link } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { signIn } from '../../src/services/supabase/auth';
+import { normalizeSupabaseError } from '../../src/services/supabase/errors';
+import { useSettingsStore } from '../../src/store/settingsStore';
+import {
+  getRememberedPassword,
+  setRememberedPassword,
+} from '../../src/services/rememberedPassword';
 import { Colors } from '../../src/constants/colors';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { t } = useTranslation();
+  const rememberedEmail = useSettingsStore((s) => s.rememberedEmail);
+  const setRememberedEmail = useSettingsStore((s) => s.setRememberedEmail);
+  // Derive the field value so it tracks the remembered email even when
+  // settingsStore rehydrates from AsyncStorage AFTER this screen mounts, yet
+  // hands control to the user the moment they type. `null` = untouched (follow
+  // the store); any string (incl. '') = the user has taken over. No effect, so
+  // no setState-in-effect cascade.
+  const [emailInput, setEmailInput] = useState<string | null>(null);
+  const email = emailInput ?? rememberedEmail ?? '';
+  // Same "untouched vs. taken over" pattern as email: `null` = follow the value
+  // loaded from SecureStore; any string = the user has typed. The remembered
+  // password loads ASYNC (Keychain/Keystore), so it can arrive after mount.
+  const [passwordInput, setPasswordInput] = useState<string | null>(null);
+  const [loadedPassword, setLoadedPassword] = useState<string | null>(null);
+  const password = passwordInput ?? loadedPassword ?? '';
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
+  // Pre-fill the remembered password once, on mount. Critical for the patient
+  // (dementia) who cannot recall it. If the user has already started typing by
+  // the time it resolves, don't clobber their input.
+  useEffect(() => {
+    let active = true;
+    getRememberedPassword().then((pw) => {
+      if (active && pw) setLoadedPassword(pw);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      setError('Please fill in all fields.');
+      setError(t('auth.login.fillAllFields'));
       return;
     }
     setError('');
     setLoading(true);
     try {
       await signIn(email.trim().toLowerCase(), password);
+      // Persist (or clear) the pre-fill only after a successful sign-in.
+      setRememberedEmail(remember ? email.trim().toLowerCase() : null);
+      await setRememberedPassword(remember ? password : null);
       // Navigation is handled by the root layout's auth guard
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
-      setError(msg);
+      setError(t(normalizeSupabaseError(err).messageKey));
     } finally {
       setLoading(false);
     }
@@ -43,42 +87,62 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.appName} accessibilityRole="header">
-            CareSync
+            {t('common.appName')}
           </Text>
-          <Text style={styles.tagline}>Medication management for caregivers and patients</Text>
+          <Text style={styles.tagline}>{t('auth.login.tagline')}</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
           <TextInput
-            label="Email"
+            label={t('auth.login.emailLabel')}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={setEmailInput}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Email address"
+            accessibilityLabel={t('auth.login.emailA11y')}
           />
 
           <TextInput
-            label="Password"
+            label={t('auth.login.passwordLabel')}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={setPasswordInput}
             secureTextEntry={!passwordVisible}
             autoComplete="current-password"
             mode="outlined"
             style={styles.input}
-            accessibilityLabel="Password"
+            accessibilityLabel={t('auth.login.passwordLabel')}
             right={
               <TextInput.Icon
                 icon={passwordVisible ? 'eye-off' : 'eye'}
                 onPress={() => setPasswordVisible((v) => !v)}
-                accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+                accessibilityLabel={
+                  passwordVisible ? t('auth.login.hidePassword') : t('auth.login.showPassword')
+                }
               />
             }
           />
+
+          {/* Remember me — persists the email pre-fill for next launch */}
+          <Pressable
+            style={styles.rememberRow}
+            onPress={() => setRemember((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: remember }}
+            accessibilityLabel={t('auth.login.rememberMe')}
+            accessibilityHint={t('auth.login.rememberMeHint')}
+            hitSlop={8}
+          >
+            <Checkbox
+              status={remember ? 'checked' : 'unchecked'}
+              onPress={() => setRemember((v) => !v)}
+              color={Colors.light.primary}
+            />
+            <Text style={styles.rememberLabel}>{t('auth.login.rememberMe')}</Text>
+          </Pressable>
 
           {error ? (
             <Text style={styles.errorText} accessibilityRole="alert">
@@ -93,16 +157,20 @@ export default function LoginScreen() {
             disabled={loading}
             style={styles.button}
             contentStyle={styles.buttonContent}
-            accessibilityLabel="Sign in to CareSync"
-            accessibilityHint="Double tap to sign in with your email and password"
+            accessibilityLabel={t('auth.login.signInA11y')}
+            accessibilityHint={t('auth.login.signInHint')}
           >
-            Sign In
+            {t('auth.login.signIn')}
           </Button>
 
+          <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
+            <Text style={styles.link}>{t('auth.login.forgotLink')}</Text>
+          </Link>
+
           <View style={styles.linkRow}>
-            <Text style={styles.linkText}>Don&apos;t have an account? </Text>
+            <Text style={styles.linkText}>{t('auth.login.noAccount')}</Text>
             <Link href="/(auth)/register">
-              <Text style={styles.link}>Register</Text>
+              <Text style={styles.link}>{t('auth.login.registerLink')}</Text>
             </Link>
           </View>
         </View>
@@ -145,6 +213,16 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: Colors.light.background,
   },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  rememberLabel: {
+    fontSize: 14,
+    color: Colors.light.onBackground,
+    marginLeft: 4,
+  },
   errorText: {
     color: Colors.light.danger,
     fontSize: 14,
@@ -156,6 +234,11 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     height: 52,
+  },
+  forgotLink: {
+    alignSelf: 'center',
+    marginTop: 12,
+    paddingVertical: 4,
   },
   linkRow: {
     flexDirection: 'row',
