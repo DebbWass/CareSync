@@ -154,6 +154,66 @@ In Supabase Dashboard → Database → Webhooks:
 - URL: `https://{PROJECT_REF}.supabase.co/functions/v1/caregiver-alert`
 - HTTP Headers: `Authorization: Bearer {SERVICE_ROLE_KEY}`
 
+### Step 6: Enable password-reset emails (SMTP)
+
+**Why:** Supabase's built-in email sender is rate-limited and not for production —
+password-reset links won't reliably reach a real inbox until a custom SMTP
+provider is configured. Locally, emails are captured by **Mailpit**
+(`http://127.0.0.1:54324`) and never actually sent, which is why a reset email
+"never arrives" during local development — that is expected.
+
+**1. Get an SMTP provider.** [Resend](https://resend.com) (free tier, quick) or
+SendGrid both work. Create an account, verify a sending domain (or use the
+provider's sandbox sender for testing), and generate an **API key**.
+
+**2. Configure SMTP on the hosted project** — Dashboard → **Authentication →
+Emails → SMTP Settings** → *Enable Custom SMTP*:
+
+| Field | Value (Resend example) |
+|---|---|
+| Sender email | `no-reply@yourdomain.com` (must be on a verified domain) |
+| Sender name | `CareSync` |
+| Host | `smtp.resend.com` |
+| Port | `587` |
+| Username | `resend` |
+| Password | your provider API key |
+
+> ⚠️ Enter the API key **in the dashboard only** — never commit it to the repo
+> or `.env`. It is a sending credential.
+
+**3. Raise the email rate limit** — Dashboard → Authentication → Rate Limits →
+"Emails per hour". The default (2/hour) is too low for testing; raise it once
+custom SMTP is enabled.
+
+**4. Add the reset deep-link redirect** — Dashboard → Authentication → URL
+Configuration → **Redirect URLs** → add `caresync://reset-password`. (Already
+listed in `supabase/config.toml` for local; the hosted project needs it too, or
+the link in the email won't reopen the app.)
+
+**5. Push the `email_exists` migration to the hosted project** so the
+forgot-password screen's "no account found" check works there too:
+
+```powershell
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push   # includes 20260722000001_email_exists_rpc.sql
+```
+
+**6. Point the app at the hosted project** — set `apps/mobile/.env.local`:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<hosted anon key>
+```
+
+**7. Test:** trigger "Forgot password?" for a **real registered** email → the
+reset link should now arrive in that inbox. For an **unregistered** email the
+app shows "No account was found for this email" (see the enumeration note in
+`supabase/migrations/20260722000001_email_exists_rpc.sql`).
+
+> **Note on email confirmations:** if you turn Auth → *Confirm email* ON, the
+> app still shows a clear "email already in use" message on duplicate signup —
+> `signUp()` detects GoTrue's empty-`identities` anti-enumeration response.
+
 ---
 
 ## Expo EAS Setup

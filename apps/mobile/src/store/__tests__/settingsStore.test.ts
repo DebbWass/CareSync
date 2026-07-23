@@ -45,4 +45,15 @@ describe('settingsStore', () => {
     setLanguage(null);
     expect(useSettingsStore.getState().language).toBeNull();
   });
+
+  it('remembers and clears the login email pre-fill (Remember me)', () => {
+    const { setRememberedEmail } = useSettingsStore.getState();
+    expect(useSettingsStore.getState().rememberedEmail).toBeNull(); // no pre-fill by default
+
+    setRememberedEmail('dorit@example.com');
+    expect(useSettingsStore.getState().rememberedEmail).toBe('dorit@example.com');
+
+    setRememberedEmail(null); // unchecking Remember me clears it
+    expect(useSettingsStore.getState().rememberedEmail).toBeNull();
+  });
 });

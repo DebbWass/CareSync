@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import { normalizeSupabaseError } from './errors';
+import { AppError, normalizeSupabaseError } from './errors';
 import type { User, UserRole } from '../../types';
 
 // Deep link the password-recovery email redirects back to. Must stay listed in
@@ -30,6 +30,17 @@ export async function signUp(email: string, password: string, name: string, role
   });
 
   if (error) throw normalizeSupabaseError(error);
+
+  // Enforce unique email regardless of backend config. With email
+  // confirmations OFF, GoTrue rejects a duplicate outright (handled above).
+  // With confirmations ON, GoTrue's anti-enumeration path instead returns a
+  // *fake* user with an EMPTY identities array (never a real one for a genuine
+  // new signup) — detect that and surface the same "email in use" message so a
+  // second account can never be silently opened on an existing address.
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    throw new AppError('emailInUse');
+  }
+
   return data;
 }
 
@@ -40,8 +51,26 @@ export async function signOut() {
 }
 
 /**
- * Send a password-recovery email. GoTrue does not reveal whether the address
- * has an account (anti-enumeration), and neither should the UI copy.
+ * Whether an account exists for this email. Backed by the SECURITY DEFINER
+ * `email_exists` RPC (callable by anon) so the pre-login forgot-password and
+ * register screens can give a definite answer.
+ *
+ * NOTE: this is deliberately enumerable — a product decision (2026-07-22) that
+ * overrides GoTrue's default anti-enumeration stance. See the RPC migration
+ * (20260722000001_email_exists_rpc.sql) for the rationale and how to revert.
+ */
+export async function emailExists(email: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('email_exists', {
+    p_email: email.trim().toLowerCase(),
+  });
+  if (error) throw normalizeSupabaseError(error);
+  return data === true;
+}
+
+/**
+ * Send a password-recovery email. The caller (forgot-password screen) checks
+ * emailExists() first and shows an explicit "no account" message, so by the
+ * time this runs the address is known to exist.
  */
 export async function requestPasswordReset(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {

@@ -228,15 +228,25 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
+# ── Password-reset / auth emails (SMTP) ───────────────────────────────────────
+# LOCAL DEV: leave this commented — local emails are captured by Mailpit
+#   (open http://127.0.0.1:54324) instead of being delivered. No SMTP needed.
+#
+# REAL DELIVERY (e.g. Gmail inbox) is configured on the HOSTED project via the
+# Supabase Dashboard → Authentication → Emails → SMTP Settings (NOT here).
+# See docs/deployment.md → "Enable password-reset emails (SMTP)" for the full
+# runbook. The block below is a template if you ever want local dev to send
+# through a real provider (e.g. Resend) — put the API key in .env and run
+# `supabase start` with it exported:
+#
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.sendgrid.net"
+# host = "smtp.resend.com"      # or smtp.sendgrid.net
 # port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# user = "resend"               # provider-specific ("apikey" for SendGrid)
+# pass = "env(SMTP_PASSWORD)"   # provider API key — never commit it
+# admin_email = "no-reply@yourdomain.com"
+# sender_name = "CareSync"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

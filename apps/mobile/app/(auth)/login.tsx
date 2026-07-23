@@ -1,19 +1,58 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { useEffect, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Button, Checkbox, Text, TextInput } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { signIn } from '../../src/services/supabase/auth';
 import { normalizeSupabaseError } from '../../src/services/supabase/errors';
+import { useSettingsStore } from '../../src/store/settingsStore';
+import {
+  getRememberedPassword,
+  setRememberedPassword,
+} from '../../src/services/rememberedPassword';
 import { Colors } from '../../src/constants/colors';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const rememberedEmail = useSettingsStore((s) => s.rememberedEmail);
+  const setRememberedEmail = useSettingsStore((s) => s.setRememberedEmail);
+  // Derive the field value so it tracks the remembered email even when
+  // settingsStore rehydrates from AsyncStorage AFTER this screen mounts, yet
+  // hands control to the user the moment they type. `null` = untouched (follow
+  // the store); any string (incl. '') = the user has taken over. No effect, so
+  // no setState-in-effect cascade.
+  const [emailInput, setEmailInput] = useState<string | null>(null);
+  const email = emailInput ?? rememberedEmail ?? '';
+  // Same "untouched vs. taken over" pattern as email: `null` = follow the value
+  // loaded from SecureStore; any string = the user has typed. The remembered
+  // password loads ASYNC (Keychain/Keystore), so it can arrive after mount.
+  const [passwordInput, setPasswordInput] = useState<string | null>(null);
+  const [loadedPassword, setLoadedPassword] = useState<string | null>(null);
+  const password = passwordInput ?? loadedPassword ?? '';
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  // Pre-fill the remembered password once, on mount. Critical for the patient
+  // (dementia) who cannot recall it. If the user has already started typing by
+  // the time it resolves, don't clobber their input.
+  useEffect(() => {
+    let active = true;
+    getRememberedPassword().then((pw) => {
+      if (active && pw) setLoadedPassword(pw);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -24,6 +63,9 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email.trim().toLowerCase(), password);
+      // Persist (or clear) the pre-fill only after a successful sign-in.
+      setRememberedEmail(remember ? email.trim().toLowerCase() : null);
+      await setRememberedPassword(remember ? password : null);
       // Navigation is handled by the root layout's auth guard
     } catch (err: unknown) {
       setError(t(normalizeSupabaseError(err).messageKey));
@@ -55,7 +97,7 @@ export default function LoginScreen() {
           <TextInput
             label={t('auth.login.emailLabel')}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={setEmailInput}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -67,7 +109,7 @@ export default function LoginScreen() {
           <TextInput
             label={t('auth.login.passwordLabel')}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={setPasswordInput}
             secureTextEntry={!passwordVisible}
             autoComplete="current-password"
             mode="outlined"
@@ -83,6 +125,24 @@ export default function LoginScreen() {
               />
             }
           />
+
+          {/* Remember me — persists the email pre-fill for next launch */}
+          <Pressable
+            style={styles.rememberRow}
+            onPress={() => setRemember((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: remember }}
+            accessibilityLabel={t('auth.login.rememberMe')}
+            accessibilityHint={t('auth.login.rememberMeHint')}
+            hitSlop={8}
+          >
+            <Checkbox
+              status={remember ? 'checked' : 'unchecked'}
+              onPress={() => setRemember((v) => !v)}
+              color={Colors.light.primary}
+            />
+            <Text style={styles.rememberLabel}>{t('auth.login.rememberMe')}</Text>
+          </Pressable>
 
           {error ? (
             <Text style={styles.errorText} accessibilityRole="alert">
@@ -152,6 +212,16 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: Colors.light.background,
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  rememberLabel: {
+    fontSize: 14,
+    color: Colors.light.onBackground,
+    marginLeft: 4,
   },
   errorText: {
     color: Colors.light.danger,

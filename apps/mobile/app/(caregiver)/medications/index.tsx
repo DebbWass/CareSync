@@ -2,9 +2,9 @@
  * Medication list screen — shows all active medications for a patient.
  * Receives patientId + patientName from route params.
  */
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, I18nManager, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { forwardChevron } from '../../../src/utils/rtl';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import { ActivityIndicator, FAB, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMedications } from '../../../src/hooks/useMedications';
@@ -39,16 +39,9 @@ export default function MedicationListScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {/* Header — back button removed (hardware/gesture back handles it); the
+          add action lives in the floating button below. */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.backLabel')}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backText}>{t('common.back')}</Text>
-        </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title} numberOfLines={1}>
             {t('medications.title')}
@@ -59,15 +52,6 @@ export default function MedicationListScreen() {
             </Text>
           ) : null}
         </View>
-        <TouchableOpacity
-          onPress={handleAdd}
-          accessibilityRole="button"
-          accessibilityLabel={t('medications.addLabel')}
-          accessibilityHint={t('medications.addHint')}
-          style={styles.addBtn}
-        >
-          <Text style={styles.addText}>{t('common.add')}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -97,6 +81,17 @@ export default function MedicationListScreen() {
           accessibilityLabel={t('medications.listLabel')}
         />
       )}
+
+      {/* Add medication — floating action button. Sits in the trailing bottom
+          corner: right in LTR (English), left in RTL (Hebrew). */}
+      <FAB
+        icon="plus"
+        onPress={handleAdd}
+        color="#FFFFFF"
+        style={[styles.fab, I18nManager.isRTL ? styles.fabStart : styles.fabEnd]}
+        accessibilityLabel={t('medications.addLabel')}
+        accessibilityHint={t('medications.addHint')}
+      />
     </View>
   );
 }
@@ -146,15 +141,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
   },
-  backBtn: {
-    minWidth: 60,
-    paddingVertical: 6,
-  },
-  backText: {
-    fontSize: FontSizes.caregiver.body,
-    color: '#FFFFFF',
-    fontWeight: FontWeights.semibold,
-  },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
@@ -170,18 +156,22 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     marginTop: 2,
   },
-  addBtn: {
-    minWidth: 60,
-    alignItems: 'flex-end',
-    paddingVertical: 6,
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 28,
   },
-  addText: {
-    fontSize: FontSizes.caregiver.body,
-    color: '#FFFFFF',
-    fontWeight: FontWeights.bold,
+  fabEnd: {
+    right: 24,
+  },
+  fabStart: {
+    left: 24,
   },
   list: {
     padding: 16,
+    // Clear the floating action button so it never covers the last row.
+    paddingBottom: 96,
   },
   listEmpty: {
     flex: 1,

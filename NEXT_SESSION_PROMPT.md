@@ -72,6 +72,18 @@ All 11 rebuild milestones have code, and **M11 release-prep is essentially
 built**. What's left is owner-executed (credentials, a device, personal content)
 — do NOT invent lower-value work; confirm scope before starting.
 
+> **2026-07-22 — auth & i18n polish landed** on `feature/m11-release-prep-final`
+> (from device testing): fixed missing tab/header icons (`@expo/vector-icons`),
+> the launch-language race (`syncLanguageWithStore`), added Remember-me, hardened
+> unique-email signup, and added an explicit "account not found" on password
+> reset via the new `email_exists` RPC, fixed invite-patient-by-email
+> (RLS-blocked lookup → `find_patient_id_by_email` RPC), and added the
+> **patient-side invitation flow** (accept/decline card + caregiver Cancel +
+> cancel→re-invite revive, via `get_patient_invitations` RPC). 170 Jest green,
+> typecheck clean. See
+> PROJECT_HANDOFF.md "Auth & i18n polish" for detail. **Owner action still
+> needed for real reset emails — see (e) below.**
+
 1. Check open PRs (`gh pr list`). Merged this line of work: M10 (#21), M11 core
    (#22), M11 runbook + audit triage (#23), M11 chaos smoke (#24). A later PR
    carries the English + Hebrew user-guide drafts, the EAS store profile + steps,
@@ -84,7 +96,13 @@ built**. What's left is owner-executed (credentials, a device, personal content)
    runbook §3); (c) device-validate the Maestro release suite (`.maestro/`,
    needs a dev build); (d) the **Expo SDK 54→57 bump** — deferred; it clears the
    last `ws` high so the audit gate can rise from `critical` to `high`. Do NOT
-   run `npm audit fix --omit=dev` (prunes devDependencies, breaks the toolchain).
+   run `npm audit fix --omit=dev` (prunes devDependencies, breaks the toolchain);
+   (e) **enable real password-reset emails (SMTP)** — code/flow are ready and
+   verified against local Mailpit; the owner must configure custom SMTP in the
+   hosted dashboard, `supabase db push` the migrations (incl.
+   `20260722000001_email_exists_rpc.sql`), and add the `caresync://reset-password`
+   redirect URL. Full runbook: `docs/deployment.md` → "Enable password-reset
+   emails (SMTP)".
 3. The one manual gate that unblocks a release stays with the user: the
    **physical-device validation pass** (EAS dev build) covering the reminder loop
    incl. killed-app cold start, messaging, Hebrew/RTL, accessibility (font scale

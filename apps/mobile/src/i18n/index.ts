@@ -38,10 +38,12 @@ export function detectLanguage(
   return FALLBACK_LANGUAGE;
 }
 
-const initialLanguage = detectLanguage(
-  useSettingsStore.getState().language,
-  getLocales()[0]?.languageCode
-);
+/** Resolve the language to display from the current store + device state. */
+export function resolveEffectiveLanguage(): AppLanguage {
+  return detectLanguage(useSettingsStore.getState().language, getLocales()[0]?.languageCode);
+}
+
+const initialLanguage = resolveEffectiveLanguage();
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -56,5 +58,32 @@ i18n.use(initReactI18next).init({
   },
   returnNull: false,
 });
+
+/**
+ * Reconcile i18n with the persisted setting.
+ *
+ * settingsStore persists to AsyncStorage, which rehydrates ASYNCHRONOUSLY —
+ * after this module has already run `init` above. So the very first `init`
+ * only ever sees the store's in-memory default (language = null → device
+ * locale), never the value the user saved on a previous launch. Without this
+ * reconciliation the app renders in the device language while the Settings
+ * panel (which reads the rehydrated store) shows the saved language checked —
+ * the exact mismatch users hit on launch. Re-resolving once the persisted
+ * value is available brings the two back in sync.
+ */
+export function syncLanguageWithStore(): Promise<unknown> | void {
+  const effective = resolveEffectiveLanguage();
+  if (i18n.language !== effective) {
+    return i18n.changeLanguage(effective);
+  }
+}
+
+if (useSettingsStore.persist.hasHydrated()) {
+  // Rehydration already finished (e.g. hot reload) — reconcile immediately.
+  syncLanguageWithStore();
+} else {
+  // First launch: reconcile as soon as AsyncStorage finishes rehydrating.
+  useSettingsStore.persist.onFinishHydration(syncLanguageWithStore);
+}
 
 export default i18n;

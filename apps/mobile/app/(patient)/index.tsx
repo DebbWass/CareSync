@@ -8,6 +8,7 @@ import { ActivityIndicator } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ReminderCard } from '../../src/components/patient/ReminderCard';
+import { PatientInvitations } from '../../src/components/patient/PatientInvitations';
 import { Text } from '../../src/components/ui/Text';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import {
@@ -15,6 +16,7 @@ import {
   usePendingEvent,
   useSnoozeEvent,
 } from '../../src/hooks/useMedicationEvent';
+import { usePatientInvitations } from '../../src/hooks/usePatients';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors } from '../../src/constants/colors';
 import { FontSizes } from '../../src/constants/typography';
@@ -25,6 +27,7 @@ export default function PatientHome() {
   const theme = highContrast ? Colors.highContrast : Colors.light;
 
   const { data: event, isLoading, error, refetch } = usePendingEvent();
+  const { data: invitations = [] } = usePatientInvitations();
   const confirm = useConfirmEvent();
   const snooze = useSnoozeEvent();
 
@@ -62,6 +65,16 @@ export default function PatientHome() {
           isConfirming={confirm.isPending}
           isSnoozing={snooze.isPending}
         />
+      </View>
+    );
+  }
+
+  // ── Pending caregiver invitations ────────────────────────────────────────────
+  // Shown only when no dose is due — a medication reminder always takes priority.
+  if (invitations.length > 0) {
+    return (
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        <PatientInvitations invitations={invitations} />
       </View>
     );
   }

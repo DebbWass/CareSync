@@ -317,7 +317,50 @@ the milestone list below is the durable copy.
       lets the audit threshold rise to `high`) — deliberately deferred, needs
       device validation, NOT a hotfix.
 
-**Test totals (develop + M11 branch):** 150 Jest · 31 Deno · 77 pgTAP ·
+- [x] **M11 — Auth & i18n polish (2026-07-22, from device testing).** Six
+      user-reported fixes on `feature/m11-release-prep-final`:
+      1. **Missing tab/header icons** — switched `react-native-vector-icons`
+         (fonts never bundle in Expo managed) to `@expo/vector-icons` in both
+         `(caregiver)/_layout.tsx` and `(patient)/_layout.tsx`; the MCI font now
+         embeds (verified via `expo export`).
+      2. **Wrong launch language** — i18n read `settingsStore` synchronously at
+         import, before AsyncStorage rehydration, so the app locked onto the
+         device language while Settings showed the saved one. Added
+         `syncLanguageWithStore()` (i18n/index.ts) reconciling on
+         `persist.onFinishHydration`. +3 Jest.
+      3. **Remember me** — login screen checkbox + `settingsStore.rememberedEmail`
+         pre-fill (session already persists via SecureStore). +1 Jest.
+      4. **Unique email** — `signUp()` now also rejects GoTrue's empty-`identities`
+         anti-enumeration response, so "email already in use" shows regardless of
+         the *Confirm email* setting. Live-verified on local. +2 Jest.
+      5. **Account-not-found on reset** — new `email_exists(text)` SECURITY DEFINER
+         RPC (anon-granted); forgot-password checks it first and shows an explicit
+         message. **Deliberately reverses anti-enumeration — an explicit owner
+         decision.** RPC live-verified (true/false/case-insensitive). +3 Jest.
+      6. **Real reset emails (SMTP)** — code/flow ready and verified (reset email
+         generated, captured by local Mailpit). Real delivery is owner-executed:
+         SMTP runbook added to `docs/deployment.md` (Step 6). **REMAINS:** enter
+         the SMTP API key in the hosted dashboard, push migrations to hosted, add
+         the `caresync://reset-password` redirect URL.
+      7. **Invite-patient by email failed** — `users_select` RLS hides patients a
+         caregiver isn't linked to yet, so the invite lookup always reported "no
+         patient found". Added `find_patient_id_by_email(text)` SECURITY DEFINER
+         RPC (authenticated) and routed `invitePatientByEmail` through it. Live-
+         verified against the real local accounts (patient→id, caregiver→null,
+         case-insensitive).
+      8. **Patient couldn't see/accept invitations + no way to disconnect** —
+         invitations are in-app (no email), but the patient app had no surface to
+         act on them, and `users_select` RLS hid the inviting caregiver. Added
+         `get_patient_invitations()` SECURITY DEFINER RPC (returns pending invites
+         + caregiver name/email), a patient-home invitation card (Accept/Decline),
+         a caregiver **Cancel** button for pending invites, and made
+         `invitePatientByEmail` revive a cancelled/revoked link instead of failing
+         on the unique constraint (so cancel→re-invite works; an already-active
+         link still reports conflict). Accept/decline/cancel ride existing
+         `relationships_update` RLS. Live-verified the whole lifecycle
+         (invite→see→accept, cancel, re-invite). +7 Jest.
+
+**Test totals (develop + M11 branch):** 170 Jest · 31 Deno · 77 pgTAP ·
 8 CI jobs.
 
 ## Remaining Features (prioritized roadmap)

@@ -35,6 +35,21 @@
       "dosageA11y": "Dosage, required",
       "dosagePlaceholder": "e.g. 500mg — 1 tablet",
       "dosageRequired": "Dosage is required (e.g. \"10mg\" or \"2 tablets\").",
+      "amountLabel": "Amount *",
+      "amountA11y": "Dosage amount, required",
+      "amountPlaceholder": "e.g. 1 or 500",
+      "amountRequired": "Amount is required (e.g. \"1\" or \"500\").",
+      "unitLabel": "Unit *",
+      "unitA11y": "Dosage unit, required. Double tap to choose.",
+      "unitPlaceholder": "Select unit",
+      "unitRequired": "Please choose a unit.",
+      "units": {
+        "pill": "Pill",
+        "drops": "Drops",
+        "mg": "mg",
+        "gram": "gram",
+        "ml": "ml"
+      },
       "instructionsLabel": "Instructions (optional)",
       "instructionsA11y": "Instructions, optional",
       "instructionsPlaceholder": "e.g. Take with food and water",
@@ -66,6 +81,15 @@
       "historyLink": "View history →",
       "historyLinkLabel": "View medication history",
       "historyLinkHint": "Double tap to open your past medication records"
+    },
+    "invitations": {
+      "title": "Care request",
+      "body": "{{name}} would like to help manage your medications.",
+      "accept": "✓ Accept",
+      "acceptA11y": "Accept care from {{name}}",
+      "acceptHint": "Double tap to let this person help manage your medications",
+      "decline": "Decline",
+      "declineA11y": "Decline care from {{name}}"
     },
     "reminder": {
       "timeToTake": "TIME TO TAKE YOUR MEDICATION",
@@ -143,7 +167,9 @@
       "fillAllFields": "Please fill in all fields.",
       "noAccount": "Don't have an account? ",
       "registerLink": "Register",
-      "forgotLink": "Forgot password?"
+      "forgotLink": "Forgot password?",
+      "rememberMe": "Remember me",
+      "rememberMeHint": "Keeps your email and password filled in and keeps you signed in on this device"
     },
     "register": {
       "subtitle": "Create your account",
@@ -167,8 +193,9 @@
       "sendButton": "Send Reset Link",
       "sendA11y": "Send password reset link",
       "enterEmail": "Enter an email address.",
+      "noAccount": "No account was found for this email. Check the address or create a new account.",
       "sentTitle": "Check your email",
-      "sentBody": "If an account exists for {{email}}, a password reset link is on its way. Open it on this device.",
+      "sentBody": "A password reset link is on its way to {{email}}. Open it on this device.",
       "backToLogin": "← Back to sign in",
       "backToLoginA11y": "Back to the sign-in screen"
     },
@@ -250,7 +277,11 @@
     "removeConfirm": "Remove",
     "removeFailed": "Could not remove the patient",
     "viewMedsLabel": "View medications for {{name}}",
-    "removeLabel": "Remove {{name}}"
+    "removeLabel": "Remove {{name}}",
+    "cancelInviteTitle": "Cancel invitation?",
+    "cancelInviteMessage": "This invitation will be withdrawn. You can invite this patient again later.",
+    "cancelInviteConfirm": "Cancel invitation",
+    "cancelInviteA11y": "Cancel this pending invitation"
   },
   "schedules": {
     "title": "Schedules",

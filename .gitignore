@@ -68,3 +68,10 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Claude Code local tooling state (settings, worktrees)
+.claude/
+
+# Local env backups (secrets — never commit)
+*.env.local.*
+apps/mobile/.env.local.hosted-backup
